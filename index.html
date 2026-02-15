@@ -33,8 +33,11 @@
         .shape { position: absolute; top: -50px; }
         .circle { width: 30px; height: 30px; background: #f44336; border-radius: 50%; }
         .triangle { width: 40px; height: 40px; background: url('obstacle.png') center/contain no-repeat; }
-        @keyframes collect { 50% { transform: scale(1.2); } }
-        .collected-animation { animation: collect 0.3s ease; }
+        /* NEW simpler animation */
+        @keyframes simple-collect {
+          50% { opacity: 0.6; }
+        }
+        .collected-animation { animation: simple-collect 0.2s ease-out; }
 
         /* --- Overlays --- */
         .overlay {
@@ -99,7 +102,7 @@
             <p>سجّل الدخول أو أنشئ حساباً</p>
             <div id="validation-error"></div>
             <input id="insta-user" class="input-field" placeholder="يوزر الانستغرام (@user)" maxlength="30">
-            <input type="text" id="numeric-id" class="input-field" placeholder="معرّف رقمي (6 أرقام)" maxlength="6" inputmode="numeric">
+            <input type="text" id="private-id" class="input-field" placeholder="المعرّف الخاص (6+ حروف وأرقام)">
             <div class="button-group">
                 <button id="start-btn" disabled>دخول / تسجيل</button>
                 <button id="view-leaderboard-btn">🏆 أفضل 10</button>
@@ -143,7 +146,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-    import { getFirestore, collection, doc, getDoc, setDoc, addDoc, query, orderBy, limit, getDocs, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, getDoc, setDoc, query, orderBy, limit, getDocs, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-storage.js";
 
     const firebaseConfig = {
@@ -158,7 +161,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const storage = getStorage(app);
-    const leaderboardRef = collection(db, "users"); // Corrected to 'users'
+    const usersRef = collection(db, "users");
 
     const pages = document.querySelectorAll('.page');
     const gameContainer = document.getElementById("game-container");
@@ -178,7 +181,7 @@
     const pauseBtn = document.getElementById("pause-btn");
     const viewLeaderboardBtn = document.getElementById("view-leaderboard-btn");
     const instaUser = document.getElementById("insta-user");
-    const numericIdInput = document.getElementById("numeric-id");
+    const privateIdInput = document.getElementById("private-id");
     const validationError = document.getElementById("validation-error");
     const backBtns = document.querySelectorAll('.back-btn');
     const profileBtn = document.getElementById('profile-btn');
@@ -223,31 +226,32 @@
     });
 
     const instaRegex = /^@[a-zA-Z0-9_]{1,30}$/;
-    const numericRegex = /^[0-9]{6}$/;
+    const idRegex = /^[a-zA-Z0-9]{6,}$/; // UPDATED Regex
 
     function validateInputs() {
         const user = instaUser.value;
-        const numericId = numericIdInput.value;
-        if (instaRegex.test(user) && numericRegex.test(numericId)) {
+        const privateId = privateIdInput.value;
+        if (instaRegex.test(user) && idRegex.test(privateId)) {
             startBtn.disabled = false;
             validationError.textContent = '';
         } else {
             startBtn.disabled = true;
             if (user && !instaRegex.test(user)) {
                 validationError.textContent = 'يوزر الانستغرام يجب أن يبدأ بـ @';
-            } else if (numericId && !numericRegex.test(numericId)) {
-                validationError.textContent = 'المعرّف يجب أن يكون 6 أرقام بالضبط';
+            } else if (privateId && !idRegex.test(privateId)) {
+                // UPDATED Validation message
+                validationError.textContent = 'المعرّف الخاص يجب أن يتكون من 6 أحرف أو أرقام على الأقل';
             } else {
                 validationError.textContent = '';
             }
         }
     }
     instaUser.addEventListener('input', validateInputs);
-    numericIdInput.addEventListener('input', validateInputs);
+    privateIdInput.addEventListener('input', validateInputs);
 
     startBtn.onclick = async () => {
         const username = instaUser.value;
-        const numericId = numericIdInput.value;
+        const privateId = privateIdInput.value; // UPDATED variable name
         startBtn.disabled = true;
         startBtn.textContent = 'جاري التحقق...';
         validationError.textContent = '';
@@ -258,17 +262,17 @@
 
             if (userDoc.exists()) {
                 const userData = userDoc.data();
-                if (userData.numericId === numericId) {
+                if (userData.privateId === privateId) { // UPDATED field name
                     currentUser = { username, ...userData };
                     showWelcomeMessage(`أهلاً بعودتك ${username}`);
                     loginSuccess();
                 } else {
-                    validationError.textContent = 'المعرّف الرقمي غير صحيح.';
+                    validationError.textContent = 'المعرّف الخاص غير صحيح.';
                 }
             } else {
                 const newUser = {
                     username,
-                    numericId,
+                    privateId, // UPDATED field name
                     highScore: 0,
                     profilePictureUrl: null,
                     createdAt: serverTimestamp()
@@ -288,7 +292,7 @@
     };
     
     function loginSuccess() {
-        localStorage.setItem('savedMariomaUser', JSON.stringify({u: currentUser.username, n: currentUser.numericId}));
+        localStorage.setItem('savedMariomaUser', JSON.stringify({u: currentUser.username, p: currentUser.privateId}));
         updateProfileIcon();
         profileBtn.style.visibility = 'visible';
         startScreen.style.display = "none";
@@ -296,7 +300,6 @@
     }
 
     function startNewGameRound() {
-        // Reset game state
         score = 0;
         time = INITIAL_TIME;
         isGameOver = false;
@@ -309,14 +312,13 @@
         player.style.display = "block";
         gameOverOverlay.style.display = "none";
         
-        // Clear old intervals and start new ones
         clearInterval(timerInterval);
         clearInterval(shapeInterval);
         cancelAnimationFrame(gameLoopId);
         
+        updateTimer();
         resumeGame();
         gameLoop();
-        updateTimer(); // Call once to display initial time
     }
 
     function pauseGame() {
@@ -331,26 +333,27 @@
         if (isGameOver) return;
         isPaused = false;
         pauseBtn.textContent = '⏸';
-        shapeInterval = setInterval(createShape, frenzy ? 450 : 1000);
+        shapeInterval = setInterval(createShape, frenzy ? 450 : 900);
         timerInterval = setInterval(updateTimer, 1000);
     }
     pauseBtn.onclick = () => { isPaused ? resumeGame() : pauseGame(); };
 
     function updateTimer() {
-        time--;
         const minutes = Math.floor(time / 60).toString().padStart(2, '0');
         const seconds = (time % 60).toString().padStart(2, '0');
         timerEl.textContent = `الوقت: ${minutes}:${seconds}`;
 
-        if (time <= 10 && time > 0 && !frenzy) {
+        // UPDATED Frenzy mode condition
+        if (!frenzy && time > 0 && time <= (INITIAL_TIME / 2)) {
             frenzy = true;
             timerEl.classList.add("time-warning");
             clearInterval(shapeInterval);
             shapeInterval = setInterval(createShape, 450);
         }
         if (time <= 0) {
-            endGame('win');
+            winGame();
         }
+        time--;
     }
 
     function endGame(status) {
@@ -371,7 +374,7 @@
             gameOverOverlay.style.display = 'none';
             loadLeaderboard();
             showPage(leaderboardPage);
-        }, status === 'loss' ? 3000 : 0); // Show loss message for 3s
+        }, status === 'loss' ? 3000 : 0);
     }
 
     const loseGame = () => endGame('loss');
@@ -383,8 +386,7 @@
             const userDocRef = doc(db, "users", currentUser.username);
             await updateDoc(userDocRef, {
                 highScore: score,
-                // Also update picture URL on score save to keep leaderboard fresh
-                profilePictureUrl: currentUser.profilePictureUrl 
+                profilePictureUrl: currentUser.profilePictureUrl
             });
             currentUser.highScore = score;
         }
@@ -393,7 +395,7 @@
     async function loadLeaderboard() {
         leaderboardList.innerHTML = "<li>يتم التحميل...</li>";
         try {
-            const q = query(leaderboardRef, orderBy("highScore", "desc"), limit(10));
+            const q = query(usersRef, orderBy("highScore", "desc"), limit(10));
             const snap = await getDocs(q);
             
             if (snap.empty) {
@@ -419,36 +421,51 @@
         }
     }
     
-    // ... Other functions (gameLoop, controls, etc. remain the same)
-    function gameLoop() { if (isGameOver || isPaused) { gameLoopId = requestAnimationFrame(gameLoop); return; } if (move.left) movePlayer(-speed); if (move.right) movePlayer(speed); for (let i = fallingShapes.length - 1; i >= 0; i--) { const shapeData = fallingShapes[i]; shapeData.y += shapeData.fallSpeed; shapeData.element.style.top = shapeData.y + "px"; if (collide(player, shapeData.element)) { if (shapeData.element.classList.contains("circle")) { score++; scoreEl.textContent = `النقاط: ${score}`; collectSound.currentTime = 0; collectSound.play(); player.classList.add("collected-animation"); setTimeout(() => player.classList.remove("collected-animation"), 300); shapeData.element.remove(); fallingShapes.splice(i, 1); } else { loseGame(); } } else if (shapeData.y > board.offsetHeight) { shapeData.element.remove(); fallingShapes.splice(i, 1); } } gameLoopId = requestAnimationFrame(gameLoop); }
+    function gameLoop() { if (isGameOver || isPaused) { gameLoopId = requestAnimationFrame(gameLoop); return; } if (move.left) movePlayer(-speed); if (move.right) movePlayer(speed); for (let i = fallingShapes.length - 1; i >= 0; i--) { const shapeData = fallingShapes[i]; shapeData.y += shapeData.fallSpeed; shapeData.element.style.top = shapeData.y + "px"; if (collide(player, shapeData.element)) { if (shapeData.element.classList.contains("circle")) { score++; scoreEl.textContent = `النقاط: ${score}`; collectSound.currentTime = 0; collectSound.play(); player.classList.add("collected-animation"); setTimeout(() => player.classList.remove("collected-animation"), 200); shapeData.element.remove(); fallingShapes.splice(i, 1); } else { loseGame(); } } else if (shapeData.y > board.offsetHeight) { shapeData.element.remove(); fallingShapes.splice(i, 1); } } gameLoopId = requestAnimationFrame(gameLoop); }
     function movePlayer(dx) { const x = player.offsetLeft + dx; const max = board.offsetWidth - player.offsetWidth; player.style.left = Math.max(0, Math.min(max, x)) + "px"; }
     function createShape() { const s = document.createElement("div"); s.className = "shape " + (Math.random() < 0.7 ? "circle" : "triangle"); s.style.left = Math.random() * (board.offsetWidth - 40) + "px"; board.appendChild(s); fallingShapes.push({ element: s, y: -50, fallSpeed: (Math.random() * 3 + 2) * (frenzy ? 1.6 : 1) }); }
     function collide(a, b) { const A = a.getBoundingClientRect(); const B = b.getBoundingClientRect(); return !(A.right < B.left || A.left > B.right || A.bottom < B.top || A.top > B.bottom); }
     document.addEventListener("keydown", e => { if (e.key === "ArrowLeft") move.left = true; if (e.key === "ArrowRight") move.right = true; });
     document.addEventListener("keyup", e => { if (e.key === "ArrowLeft") move.left = false; if (e.key === "ArrowRight") move.right = false; });
-    document.querySelector("#left-btn").addEventListener("mousedown", () => move.left = true); document.querySelector("#left-btn").addEventListener("touchstart", (e) => { e.preventDefault(); move.left = true; });
-    document.querySelector("#right-btn").addEventListener("mousedown", () => move.right = true); document.querySelector("#right-btn").addEventListener("touchstart", (e) => { e.preventDefault(); move.right = true; });
-    document.addEventListener("mouseup", () => { move.left = false; move.right = false; });
+    document.querySelector("#left-btn").addEventListener("touchstart", (e) => { e.preventDefault(); move.left = true; });
+    document.querySelector("#right-btn").addEventListener("touchstart", (e) => { e.preventDefault(); move.right = true; });
     document.addEventListener("touchend", () => { move.left = false; move.right = false; });
+    document.addEventListener("mousedown", (e) => { if (e.target.id === 'left-btn') move.left = true; if (e.target.id === 'right-btn') move.right = true; });
+    document.addEventListener("mouseup", () => { move.left = false; move.right = false; });
 
-    // Profile page functions
-    async function loadProfile() { /* ... unchanged ... */ }
-    profilePicInput.onchange = (event) => { /* ... unchanged ... */ };
-    savePicBtn.onclick = async () => { /* ... unchanged ... */ };
+    async function loadProfile() {
+        if (!currentUser) return;
+        profileUsername.textContent = currentUser.username;
+        profileHighscore.textContent = `أعلى نقاط: ${currentUser.highScore || 0}`;
+        profilePicDisplay.src = currentUser.profilePictureUrl || defaultPic;
+    }
+    profilePicInput.onchange = (event) => { const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (e) => { profilePicDisplay.src = e.target.result; savePicBtn.style.display = 'inline-block'; }; reader.readAsDataURL(file); } };
+    savePicBtn.onclick = async () => {
+        if (!currentUser || !profilePicInput.files[0]) return;
+        savePicBtn.disabled = true; savePicBtn.textContent = 'جاري الرفع...';
+        const file = profilePicInput.files[0];
+        const storageRef = ref(storage, `profile_pictures/${currentUser.username}`);
+        try {
+            const snapshot = await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(snapshot.ref);
+            await updateDoc(doc(db, "users", currentUser.username), { profilePictureUrl: downloadURL });
+            currentUser.profilePictureUrl = downloadURL;
+            updateProfileIcon();
+            savePicBtn.style.display = 'none'; showWelcomeMessage('تم حفظ الصورة بنجاح');
+        } catch (error) { console.error("Upload error:", error); showWelcomeMessage('فشل رفع الصورة');
+        } finally { savePicBtn.disabled = false; savePicBtn.textContent = 'حفظ الصورة'; }
+    };
+
     function updateProfileIcon() {
-        if (currentUser && currentUser.profilePictureUrl) {
-            profileBtn.style.backgroundImage = `url(${currentUser.profilePictureUrl})`;
-        } else {
-             profileBtn.style.backgroundImage = `url('${defaultPic}')`;
-        }
+        profileBtn.style.backgroundImage = `url(${currentUser?.profilePictureUrl || defaultPic})`;
     }
 
     function showWelcomeMessage(message) {
         const div = document.createElement('div');
         div.textContent = message;
-        // ... styling ...
+        Object.assign(div.style, { position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', padding: '10px 25px', background: 'rgba(40, 167, 69, 0.9)', color: 'white', borderRadius: '10px', zIndex: '1000', fontSize: '18px', fontWeight: 'bold', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' });
         document.body.appendChild(div);
-        setTimeout(() => div.remove(), 3000);
+        setTimeout(() => { div.style.transition = 'opacity 0.5s'; div.style.opacity = '0'; setTimeout(() => div.remove(), 500); }, 2500);
     }
     
     function loadSavedUser() {
@@ -457,11 +474,9 @@
             try {
                 const savedUser = JSON.parse(savedUserStr);
                 instaUser.value = savedUser.u;
-                numericIdInput.value = savedUser.n;
+                privateIdInput.value = savedUser.p;
                 validateInputs();
-            } catch (e) {
-                localStorage.removeItem('savedMariomaUser');
-            }
+            } catch (e) { localStorage.removeItem('savedMariomaUser'); }
         }
     }
 
