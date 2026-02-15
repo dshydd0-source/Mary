@@ -143,6 +143,9 @@
 
 <audio id="collect-sound" src="collect.mp3"></audio>
 <audio id="lose-sound" src="lose.mp3"></audio>
+<!-- تم التعديل: إضافة مشغل موسيقى الخلفية -->
+<!-- ملاحظة: يجب تغيير 'background_music.mp3' إلى اسم ومسار ملف الموسيقى الصحيح -->
+<audio id="background-music" src="background_music.mp3" loop></audio>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
@@ -177,6 +180,7 @@
     const leaderboardList = document.getElementById("leaderboard-list");
     const collectSound = document.getElementById("collect-sound");
     const loseSound = document.getElementById("lose-sound");
+    const backgroundMusic = document.getElementById("background-music"); // تم التعديل: الحصول على عنصر الموسيقى
     const startBtn = document.getElementById("start-btn");
     const pauseBtn = document.getElementById("pause-btn");
     const viewLeaderboardBtn = document.getElementById("view-leaderboard-btn");
@@ -191,8 +195,8 @@
     const profileUsername = document.getElementById('profile-username');
     const profileHighscore = document.getElementById('profile-highscore');
 
-    const INITIAL_TIME = 150;
-    let score = 0, time = 0, speed = 6;
+    const INITIAL_TIME = 600; // تم التعديل: 10 دقائق (600 ثانية)
+    let score = 0, time = 0, speed = 6, speedModifier = 1.0; // تم التعديل: إضافة متغير لزيادة السرعة
     let isGameOver = true, isPaused = false, frenzy = false;
     let move = { left: false, right: false };
     let shapeInterval, timerInterval, gameLoopId;
@@ -302,6 +306,7 @@
     function startNewGameRound() {
         score = 0;
         time = INITIAL_TIME;
+        speedModifier = 1.0; // تم التعديل: إعادة تعيين معامل السرعة
         isGameOver = false;
         isPaused = false;
         frenzy = false;
@@ -316,6 +321,9 @@
         clearInterval(shapeInterval);
         cancelAnimationFrame(gameLoopId);
         
+        // تم التعديل: إعادة تشغيل موسيقى الخلفية من البداية
+        backgroundMusic.currentTime = 0;
+
         updateTimer();
         resumeGame();
         gameLoop();
@@ -327,6 +335,7 @@
         pauseBtn.textContent = '▶️';
         clearInterval(timerInterval);
         clearInterval(shapeInterval);
+        backgroundMusic.pause(); // تم التعديل: إيقاف الموسيقى مؤقتاً
     }
 
     function resumeGame() {
@@ -335,6 +344,7 @@
         pauseBtn.textContent = '⏸';
         shapeInterval = setInterval(createShape, frenzy ? 450 : 900);
         timerInterval = setInterval(updateTimer, 1000);
+        backgroundMusic.play(); // تم التعديل: استئناف تشغيل الموسيقى
     }
     pauseBtn.onclick = () => { isPaused ? resumeGame() : pauseGame(); };
 
@@ -342,6 +352,10 @@
         const minutes = Math.floor(time / 60).toString().padStart(2, '0');
         const seconds = (time % 60).toString().padStart(2, '0');
         timerEl.textContent = `الوقت: ${minutes}:${seconds}`;
+
+        // تم التعديل: زيادة السرعة كل دقيقة
+        const minutesPassed = Math.floor((INITIAL_TIME - time) / 60);
+        speedModifier = 1.0 + (minutesPassed * 0.2);
 
         // UPDATED Frenzy mode condition
         if (!frenzy && time > 0 && time <= (INITIAL_TIME / 2)) {
@@ -359,7 +373,7 @@
     function endGame(status) {
         if (isGameOver) return;
         isGameOver = true;
-        pauseGame();
+        pauseGame(); // هذه الدالة توقف الموسيقى الآن
         cancelAnimationFrame(gameLoopId);
         
         if (status === 'loss') {
@@ -423,7 +437,18 @@
     
     function gameLoop() { if (isGameOver || isPaused) { gameLoopId = requestAnimationFrame(gameLoop); return; } if (move.left) movePlayer(-speed); if (move.right) movePlayer(speed); for (let i = fallingShapes.length - 1; i >= 0; i--) { const shapeData = fallingShapes[i]; shapeData.y += shapeData.fallSpeed; shapeData.element.style.top = shapeData.y + "px"; if (collide(player, shapeData.element)) { if (shapeData.element.classList.contains("circle")) { score++; scoreEl.textContent = `النقاط: ${score}`; collectSound.currentTime = 0; collectSound.play(); player.classList.add("collected-animation"); setTimeout(() => player.classList.remove("collected-animation"), 200); shapeData.element.remove(); fallingShapes.splice(i, 1); } else { loseGame(); } } else if (shapeData.y > board.offsetHeight) { shapeData.element.remove(); fallingShapes.splice(i, 1); } } gameLoopId = requestAnimationFrame(gameLoop); }
     function movePlayer(dx) { const x = player.offsetLeft + dx; const max = board.offsetWidth - player.offsetWidth; player.style.left = Math.max(0, Math.min(max, x)) + "px"; }
-    function createShape() { const s = document.createElement("div"); s.className = "shape " + (Math.random() < 0.7 ? "circle" : "triangle"); s.style.left = Math.random() * (board.offsetWidth - 40) + "px"; board.appendChild(s); fallingShapes.push({ element: s, y: -50, fallSpeed: (Math.random() * 3 + 2) * (frenzy ? 1.6 : 1) }); }
+    
+    function createShape() {
+        const s = document.createElement("div");
+        s.className = "shape " + (Math.random() < 0.7 ? "circle" : "triangle");
+        s.style.left = Math.random() * (board.offsetWidth - 40) + "px";
+        board.appendChild(s);
+        // تم التعديل: تطبيق معامل السرعة على سرعة سقوط العناصر
+        const baseFallSpeed = (Math.random() * 3 + 2);
+        const finalFallSpeed = baseFallSpeed * speedModifier * (frenzy ? 1.6 : 1);
+        fallingShapes.push({ element: s, y: -50, fallSpeed: finalFallSpeed });
+    }
+
     function collide(a, b) { const A = a.getBoundingClientRect(); const B = b.getBoundingClientRect(); return !(A.right < B.left || A.left > B.right || A.bottom < B.top || A.top > B.bottom); }
     document.addEventListener("keydown", e => { if (e.key === "ArrowLeft") move.left = true; if (e.key === "ArrowRight") move.right = true; });
     document.addEventListener("keyup", e => { if (e.key === "ArrowLeft") move.left = false; if (e.key === "ArrowRight") move.right = false; });
