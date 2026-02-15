@@ -91,7 +91,7 @@
             <p>سجّل الدخول أو أنشئ حساباً</p>
             <div id="validation-error"></div>
             <input id="insta-user" class="input-field" placeholder="يوزر الانستغرام (@user)" maxlength="30">
-            <input type="text" id="private-id" class="input-field" placeholder="المعرّف الخاص (6+ حروف وأرقام)">
+            <input type="text" id="private-id" class="input-field" placeholder="الرمز">
             <div class="button-group">
                 <button id="start-btn" disabled>دخول / تسجيل</button>
                 <button id="view-leaderboard-btn">🏆 أفضل 10</button>
@@ -118,7 +118,7 @@
 
 <audio id="collect-sound" src="collect.mp3"></audio>
 <audio id="lose-sound" src="lose.mp3"></audio>
-<audio id="background-music" src="background_music.mp3" loop></audio>
+<audio id="background-music" src="background.mp3" loop></audio>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
@@ -201,7 +201,7 @@
             if (user && !instaRegex.test(user)) {
                 validationError.textContent = 'يوزر الانستغرام يجب أن يبدأ بـ @';
             } else if (privateId && !idRegex.test(privateId)) {
-                validationError.textContent = 'المعرّف الخاص يجب أن يتكون من 6 أحرف أو أرقام على الأقل';
+                validationError.textContent = 'الرمز يجب أن يتكون من 6 أحرف أو أرقام على الأقل';
             } else {
                 validationError.textContent = '';
             }
@@ -228,7 +228,7 @@
                     showWelcomeMessage(`أهلاً بعودتك ${username}`);
                     loginSuccess();
                 } else {
-                    validationError.textContent = 'المعرّف الخاص غير صحيح.';
+                    validationError.textContent = 'الرمز غير صحيح.';
                 }
             } else {
                 const newUser = {
