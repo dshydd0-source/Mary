@@ -26,7 +26,14 @@
 
         /* --- Shapes & Animations --- */
         .shape { position: absolute; top: -50px; }
-        .circle { width: 30px; height: 30px; background: #f44336; border-radius: 50%; }
+        /* تم التعديل: تعديل خصائص الدائرة لتناسب الصور */
+        .circle {
+            width: 40px;
+            height: 40px;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
         .triangle { width: 40px; height: 40px; background: url('obstacle.png') center/contain no-repeat; }
         @keyframes simple-collect {
           50% { opacity: 0.6; }
@@ -116,26 +123,26 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, setDoc, query, orderBy, limit, getDocs, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-    // تم الحذف: استيراد مكتبة التخزين
     
     const firebaseConfig = {
       apiKey: "AIzaSyDsJ6fm4SFNLnRuHj-b80L0BweGVNkoiIM",
       authDomain: "game-21f55.firebaseapp.com",
       projectId: "game-21f55",
-      storageBucket: "game-21f55.firebasestorage.app", // يبقى هذا السطر موجوداً
+      storageBucket: "game-21f55.firebasestorage.app",
       messagingSenderId: "88852711134",
       appId: "1:88852711134:web:c504445d3d800c3e13244f"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    // تم الحذف: const storage
     const usersRef = collection(db, "users");
+
+    // تم التعديل: إضافة مصفوفة بأسماء الصور
+    const collectibleImages = ['item1.png', 'item2.png', 'item3.png', 'item4.png'];
 
     const pages = document.querySelectorAll('.page');
     const gameContainer = document.getElementById("game-container");
     const leaderboardPage = document.getElementById("leaderboard-page");
-    // تم الحذف: const profilePage
     const board = document.getElementById("game-board");
     const player = document.getElementById("player");
     const scoreEl = document.getElementById("score");
@@ -154,7 +161,6 @@
     const privateIdInput = document.getElementById("private-id");
     const validationError = document.getElementById("validation-error");
     const backBtns = document.querySelectorAll('.back-btn');
-    // تم الحذف: متغيرات صفحة الملف الشخصي
 
     const INITIAL_TIME = 600; 
     let score = 0, time = 0, speed = 6, speedModifier = 1.0;
@@ -163,7 +169,6 @@
     let shapeInterval, timerInterval, gameLoopId;
     let fallingShapes = [];
     let currentUser = null;
-    // تم الحذف: const defaultPic
 
     function showPage(pageToShow) {
         pages.forEach(p => p.style.display = 'none');
@@ -174,8 +179,6 @@
         loadLeaderboard();
         showPage(leaderboardPage);
     };
-
-    // تم الحذف: profileBtn.onclick
 
     backBtns.forEach(btn => {
         btn.onclick = () => {
@@ -228,7 +231,6 @@
                     validationError.textContent = 'المعرّف الخاص غير صحيح.';
                 }
             } else {
-                // تم التعديل: إزالة حقل الصورة من المستخدم الجديد
                 const newUser = {
                     username,
                     privateId,
@@ -251,7 +253,6 @@
     
     function loginSuccess() {
         localStorage.setItem('savedMariomaUser', JSON.stringify({u: currentUser.username, p: currentUser.privateId}));
-        // تم الحذف: تحديث وإظهار زر البروفايل
         startScreen.style.display = "none";
         startNewGameRound();
     }
@@ -348,7 +349,6 @@
         if (!currentUser) return;
         if (score > (currentUser.highScore || 0)) {
             const userDocRef = doc(db, "users", currentUser.username);
-            // تم التعديل: إزالة حقل الصورة من عملية الحفظ
             await updateDoc(userDocRef, {
                 highScore: score
             });
@@ -371,7 +371,6 @@
                 const data = d.data();
                 if(data.highScore > 0) {
                     const li = document.createElement("li");
-                    // تم التعديل: إزالة وسم الصورة من القائمة
                     li.innerHTML = `
                         <span class="name">${data.username}</span>
                         <strong class="score">${data.highScore}</strong>
@@ -388,11 +387,23 @@
     function gameLoop() { if (isGameOver || isPaused) { gameLoopId = requestAnimationFrame(gameLoop); return; } if (move.left) movePlayer(-speed); if (move.right) movePlayer(speed); for (let i = fallingShapes.length - 1; i >= 0; i--) { const shapeData = fallingShapes[i]; shapeData.y += shapeData.fallSpeed; shapeData.element.style.top = shapeData.y + "px"; if (collide(player, shapeData.element)) { if (shapeData.element.classList.contains("circle")) { score++; scoreEl.textContent = `النقاط: ${score}`; collectSound.currentTime = 0; collectSound.play(); player.classList.add("collected-animation"); setTimeout(() => player.classList.remove("collected-animation"), 200); shapeData.element.remove(); fallingShapes.splice(i, 1); } else { loseGame(); } } else if (shapeData.y > board.offsetHeight) { shapeData.element.remove(); fallingShapes.splice(i, 1); } } gameLoopId = requestAnimationFrame(gameLoop); }
     function movePlayer(dx) { const x = player.offsetLeft + dx; const max = board.offsetWidth - player.offsetWidth; player.style.left = Math.max(0, Math.min(max, x)) + "px"; }
     
+    // تم التعديل: تحديث الدالة لإنشاء صور عشوائية
     function createShape() {
         const s = document.createElement("div");
-        s.className = "shape " + (Math.random() < 0.7 ? "circle" : "triangle");
+        
+        // 70% فرصة لإنشاء عنصر قابل للجمع (صورة)
+        if (Math.random() < 0.7) { 
+            s.className = "shape circle"; // استخدام 'circle' لتحديد النوع في منطق اللعبة
+            // اختيار صورة عشوائية من القائمة
+            const randomImage = collectibleImages[Math.floor(Math.random() * collectibleImages.length)];
+            s.style.backgroundImage = `url('${randomImage}')`;
+        } else { // 30% فرصة لإنشاء عائق
+            s.className = "shape triangle";
+        }
+
         s.style.left = Math.random() * (board.offsetWidth - 40) + "px";
         board.appendChild(s);
+        
         const baseFallSpeed = (Math.random() * 3 + 2);
         const finalFallSpeed = baseFallSpeed * speedModifier * (frenzy ? 1.6 : 1);
         fallingShapes.push({ element: s, y: -50, fallSpeed: finalFallSpeed });
@@ -407,8 +418,6 @@
     document.addEventListener("mousedown", (e) => { if (e.target.id === 'left-btn') move.left = true; if (e.target.id === 'right-btn') move.right = true; });
     document.addEventListener("mouseup", () => { move.left = false; move.right = false; });
 
-    // تم الحذف: دوال صفحة الملف الشخصي (loadProfile, onchange, onclick, updateProfileIcon)
-    
     function showWelcomeMessage(message) {
         const div = document.createElement('div');
         div.textContent = message;
