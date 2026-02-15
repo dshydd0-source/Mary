@@ -33,7 +33,6 @@
         .shape { position: absolute; top: -50px; }
         .circle { width: 30px; height: 30px; background: #f44336; border-radius: 50%; }
         .triangle { width: 40px; height: 40px; background: url('obstacle.png') center/contain no-repeat; }
-        /* NEW simpler animation */
         @keyframes simple-collect {
           50% { opacity: 0.6; }
         }
@@ -191,8 +190,9 @@
     const profileHighscore = document.getElementById('profile-highscore');
 
     const INITIAL_TIME = 600; // 10 minutes
-    const BASE_SPEED = 4;
-    let score = 0, time = 0, speed = BASE_SPEED;
+    const BASE_SPEED = 2.5; // Base falling speed
+    let score = 0, time = 0;
+    let speedMultiplier = 1.0;
     let isGameOver = true, isPaused = false;
     let move = { left: false, right: false };
     let shapeInterval, timerInterval, gameLoopId;
@@ -218,12 +218,12 @@
         showPage(profilePage);
     };
 
-    // Explicit listeners for back buttons to prevent bugs
     document.querySelector('#leaderboard-page .back-btn').onclick = () => {
         showPage(gameContainer);
         startNewGameRound();
     };
-    document.querySelector('#profile-page .back-btn').onclick = () => {
+    document.querySelector('#profile-page .back-btn').onclick = (e) => {
+        e.preventDefault(); // FIX: Prevent default button behavior
         showPage(gameContainer);
         startNewGameRound();
     };
@@ -312,7 +312,7 @@
     function startNewGameRound() {
         score = 0;
         time = INITIAL_TIME;
-        speed = BASE_SPEED;
+        speedMultiplier = 1.0;
         isGameOver = false;
         isPaused = false;
         fallingShapes.forEach(s => s.element.remove());
@@ -325,7 +325,7 @@
         clearInterval(shapeInterval);
         cancelAnimationFrame(gameLoopId);
         
-        updateTimer();
+        updateTimer(); // Call once to set initial display
         resumeGame();
         gameLoop();
     }
@@ -343,7 +343,7 @@
         if (isGameOver) return;
         isPaused = false;
         pauseBtn.textContent = '⏸';
-        shapeInterval = setInterval(createShape, 900); // Base interval
+        shapeInterval = setInterval(createShape, 900); // Constant interval
         timerInterval = setInterval(updateTimer, 1000);
         backgroundMusic.play();
     }
@@ -355,10 +355,9 @@
         timerEl.textContent = `الوقت: ${minutes}:${seconds}`;
 
         // Progressive speed increase every minute
-        if (time > 0 && time % 60 === 0) {
-            const minutesPassed = Math.floor((INITIAL_TIME - time) / 60);
-            speed = BASE_SPEED + (minutesPassed * 0.2);
-            console.log(`Speed increased to: ${speed.toFixed(1)}`);
+        if (time > 0 && time % 60 === 0 && time !== INITIAL_TIME) {
+            speedMultiplier += 0.1;
+            console.log(`Speed multiplier increased to: ${speedMultiplier.toFixed(2)}`);
         }
 
         if (time <= 0) {
@@ -385,7 +384,7 @@
             gameOverOverlay.style.display = 'none';
             loadLeaderboard();
             showPage(leaderboardPage);
-        }, status === 'loss' ? 3000 : 500); // Show loss message for 3s
+        }, status === 'loss' ? 3000 : 500);
     }
 
     const loseGame = () => endGame('loss');
@@ -414,9 +413,11 @@
                 return;
             }
             leaderboardList.innerHTML = "";
+            let hasScores = false;
             snap.forEach(d => {
                 const data = d.data();
                 if(data.highScore > 0) {
+                    hasScores = true;
                     const li = document.createElement("li");
                     li.innerHTML = `
                         <img class="leaderboard-pic" crossorigin="anonymous" src="${data.profilePictureUrl || defaultPic}" alt="${data.username}">
@@ -426,23 +427,30 @@
                     leaderboardList.appendChild(li);
                 }
             });
+            if (!hasScores) {
+                 leaderboardList.innerHTML = "<li>لا توجد نقاط بعد، كن أول الأبطال!</li>";
+            }
         } catch (error) {
             console.error("Error loading leaderboard: ", error);
             leaderboardList.innerHTML = "<li>حدث خطأ في تحميل القائمة.</li>";
         }
     }
     
-    function gameLoop() { if (isGameOver || isPaused) { gameLoopId = requestAnimationFrame(gameLoop); return; } if (move.left) movePlayer(-speed); if (move.right) movePlayer(speed); for (let i = fallingShapes.length - 1; i >= 0; i--) { const shapeData = fallingShapes[i]; shapeData.y += shapeData.fallSpeed; shapeData.element.style.top = shapeData.y + "px"; if (collide(player, shapeData.element)) { if (shapeData.element.classList.contains("circle")) { score++; scoreEl.textContent = `النقاط: ${score}`; collectSound.currentTime = 0; collectSound.play(); player.classList.add("collected-animation"); setTimeout(() => player.classList.remove("collected-animation"), 200); shapeData.element.remove(); fallingShapes.splice(i, 1); } else { loseGame(); } } else if (shapeData.y > board.offsetHeight) { shapeData.element.remove(); fallingShapes.splice(i, 1); } } gameLoopId = requestAnimationFrame(gameLoop); }
+    function gameLoop() { if (isGameOver || isPaused) { gameLoopId = requestAnimationFrame(gameLoop); return; } const playerSpeed = 6; if (move.left) movePlayer(-playerSpeed); if (move.right) movePlayer(playerSpeed); for (let i = fallingShapes.length - 1; i >= 0; i--) { const shapeData = fallingShapes[i]; shapeData.y += shapeData.fallSpeed; shapeData.element.style.top = shapeData.y + "px"; if (collide(player, shapeData.element)) { if (shapeData.element.classList.contains("circle")) { score++; scoreEl.textContent = `النقاط: ${score}`; collectSound.currentTime = 0; collectSound.play(); player.classList.add("collected-animation"); setTimeout(() => player.classList.remove("collected-animation"), 200); shapeData.element.remove(); fallingShapes.splice(i, 1); } else { loseGame(); } } else if (shapeData.y > player.offsetTop + player.offsetHeight) { shapeData.element.remove(); fallingShapes.splice(i, 1); } } gameLoopId = requestAnimationFrame(gameLoop); }
     function movePlayer(dx) { const x = player.offsetLeft + dx; const max = board.offsetWidth - player.offsetWidth; player.style.left = Math.max(0, Math.min(max, x)) + "px"; }
-    function createShape() { const s = document.createElement("div"); s.className = "shape " + (Math.random() < 0.7 ? "circle" : "triangle"); s.style.left = Math.random() * (board.offsetWidth - 40) + "px"; board.appendChild(s); fallingShapes.push({ element: s, y: -50, fallSpeed: (Math.random() * 2.5 + 1.5) }); }
+    function createShape() { const s = document.createElement("div"); s.className = "shape " + (Math.random() < 0.7 ? "circle" : "triangle"); s.style.left = Math.random() * (board.offsetWidth - 40) + "px"; board.appendChild(s); fallingShapes.push({ element: s, y: -50, fallSpeed: (Math.random() * 1.5 + 1) * speedMultiplier }); }
     function collide(a, b) { const A = a.getBoundingClientRect(); const B = b.getBoundingClientRect(); return !(A.right < B.left || A.left > B.right || A.bottom < B.top || A.top > B.bottom); }
+    
+    // RESTORED simple and reliable event listeners
     document.addEventListener("keydown", e => { if (e.key === "ArrowLeft") move.left = true; if (e.key === "ArrowRight") move.right = true; });
     document.addEventListener("keyup", e => { if (e.key === "ArrowLeft") move.left = false; if (e.key === "ArrowRight") move.right = false; });
     document.querySelector("#left-btn").addEventListener("touchstart", (e) => { e.preventDefault(); move.left = true; });
     document.querySelector("#right-btn").addEventListener("touchstart", (e) => { e.preventDefault(); move.right = true; });
+    document.querySelector("#left-btn").addEventListener("mousedown", (e) => { e.preventDefault(); move.left = true; });
+    document.querySelector("#right-btn").addEventListener("mousedown", (e) => { e.preventDefault(); move.right = true; });
     document.addEventListener("touchend", () => { move.left = false; move.right = false; });
-    document.addEventListener("mousedown", (e) => { if (e.target.id === 'left-btn') move.left = true; if (e.target.id === 'right-btn') move.right = true; });
     document.addEventListener("mouseup", () => { move.left = false; move.right = false; });
+
 
     async function loadProfile() {
         if (!currentUser) return;
@@ -452,7 +460,7 @@
     }
     profilePicInput.onchange = (event) => { const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (e) => { profilePicDisplay.src = e.target.result; savePicBtn.style.display = 'inline-block'; }; reader.readAsDataURL(file); } };
     savePicBtn.onclick = async (e) => {
-        e.preventDefault(); // Prevent any default browser action
+        e.preventDefault(); // FIX: Prevent default button behavior
         if (!currentUser || !profilePicInput.files[0]) return;
         savePicBtn.disabled = true; savePicBtn.textContent = 'جاري الرفع...';
         const file = profilePicInput.files[0];
