@@ -3,266 +3,593 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>لعبة جمع الدوائر</title>
+    <title>إطعام مريومة</title>
     <style>
-        html, body { height: 100%; margin: 0; overflow: hidden; }
-        body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; background-color: #333; flex-direction: column; touch-action: none; }
-        #game-container { position: relative; width: 100%; height: 100%; max-width: 450px; display: flex; flex-direction: column; background-color: #f0f0f0; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        #info-bar { display: flex; justify-content: space-between; width: 90%; font-size: 24px; margin: 10px auto; flex-shrink: 0; }
-        #game-board { position: relative; width: 100%; flex-grow: 1; border-top: 3px solid #333; border-bottom: 3px solid #333; overflow: hidden; background-color: lightpink; }
-        #player { position: absolute; width: 60px; height: 60px; bottom: 10px; left: 50%; transform: translateX(-50%); display: none; object-fit: contain; transition: transform 0.1s; }
-        .collected-animation { animation: collect-animation 0.3s ease; }
-        @keyframes collect-animation { 50% { transform: translateX(-50%) scale(1.2); } }
+        /* --- General Styles --- */
+        html, body { height: 100%; margin: 0; overflow: hidden; font-family: 'Cairo', Arial, sans-serif; }
+        body { display: flex; justify-content: center; align-items: center; background: #333; touch-action: none; }
+        button { cursor: pointer; font-family: inherit; }
+
+        /* --- Containers --- */
+        .page {
+            width: 100%; max-width: 450px; height: 100%;
+            background: #f0f0f0; display: none; /* Hide all pages by default */
+            flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,.5);
+        }
+        #game-container { display: flex; } /* Show game page initially */
+
+        /* --- Game UI --- */
+        #info-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 15px; font-size: 20px; background: #fff;
+        }
+        #profile-btn {
+            font-size: 22px; background: none; border: none; padding: 0 5px;
+            width: 40px; height: 40px; border-radius: 50%;
+            background-image: url('data:image/svg+xml,...'); /* Placeholder Icon */
+            background-size: cover; background-position: center;
+        }
+        #pause-btn { font-size: 24px; background: none; border: none; padding: 0 10px; }
+        #game-board {
+            position: relative; flex-grow: 1;
+            background: lightpink; overflow: hidden;
+            border-top: 3px solid #333; border-bottom: 3px solid #333;
+        }
+        #player {
+            position: absolute; bottom: 10px; left: 50%;
+            transform: translateX(-50%); width: 60px; height: 60px;
+            display: none; object-fit: contain;
+        }
+
+        /* --- Shapes & Animations --- */
         .shape { position: absolute; top: -50px; }
-        .circle { width: 30px; height: 30px; background-color: #f44336; border-radius: 50%; }
-        .triangle { width: 40px; height: 40px; background-image: url('obstacle.png'); background-size: contain; background-repeat: no-repeat; }
-        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; background-color: rgba(0, 0, 0, 0.7); text-align: center; z-index: 10; padding: 20px; box-sizing: border-box; }
-        .overlay h1 { font-size: 36px; margin-bottom: 20px; }
-        .overlay button { padding: 15px 30px; font-size: 24px; border: none; border-radius: 10px; cursor: pointer; background-color: #ffc107; }
-        #win-screen, #game-over { display: none; }
-        #player-name-input { padding: 10px; font-size: 18px; border-radius: 8px; border: 2px solid #ddd; text-align: center; margin-bottom: 20px; width: 80%; }
+        .circle { width: 30px; height: 30px; background: #f44336; border-radius: 50%; }
+        .triangle { width: 40px; height: 40px; background: url('obstacle.png') center/contain no-repeat; }
+        .collected-animation { animation: collect 0.3s ease; }
+        @keyframes collect { 50% { transform: translateX(-50%) scale(1.2); } }
+
+        /* --- Overlays --- */
+        .overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,.7);
+            color: white; z-index: 10; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center; padding: 20px;
+        }
+        .overlay button {
+            padding: 15px 30px; font-size: 22px; border: none; border-radius: 10px;
+            background: #ffc107; margin-top: 15px;
+        }
+        #start-screen .button-group { display: flex; gap: 10px; }
+        #start-screen .button-group button { font-size: 18px; padding: 12px 20px; }
+
+        /* --- Instagram Input --- */
+        #insta-user {
+            padding: 10px; font-size: 18px; border-radius: 8px; border: 2px solid #ddd;
+            margin-bottom: 20px; text-align: center; direction: ltr;
+        }
+        #start-btn:disabled { background: #999; cursor: not-allowed; }
+        #validation-error { color: #ffc107; font-size: 14px; height: 16px; margin-bottom: 5px; }
+
+        /* --- Controls & Timer Warning --- */
         .time-warning { color: red; font-weight: bold; animation: pulse 1s infinite; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-        #controls { display: flex; justify-content: space-between; width: 100%; padding: 0 10%; box-sizing: border-box; position: absolute; bottom: 20px; }
-        #controls button { width: 80px; height: 60px; font-size: 36px; font-weight: bold; background-color: rgba(255, 255, 255, 0.4); color: rgba(0, 0, 0, 0.7); border: 2px solid rgba(255, 255, 255, 0.7); border-radius: 10px; cursor: pointer; user-select: none; -webkit-user-select: none; }
-        #leaderboard { padding: 10px; text-align: center; background-color: #f0f0f0; flex-shrink: 0; }
-        #leaderboard h2 { margin: 0 0 10px 0; font-size: 20px; color: #333; }
-        #leaderboard ol { list-style: none; padding: 0; margin: 0; }
-        #leaderboard li { display: flex; justify-content: space-between; padding: 5px 15px; background-color: #e9e9e9; border-radius: 5px; margin-bottom: 5px; font-size: 16px; }
-        #leaderboard li:nth-child(1) { background-color: #ffd700; font-weight: bold; }
-        #leaderboard li:nth-child(2) { background-color: #c0c0c0; }
-        #leaderboard li:nth-child(3) { background-color: #cd7f32; }
+        @keyframes pulse { 50% { transform: scale(1.1); } }
+        #controls {
+            position: absolute; bottom: 20px; width: 100%; display: flex;
+            justify-content: space-between; padding: 0 10%; box-sizing: border-box;
+        }
+        #controls button {
+            width: 80px; height: 60px; font-size: 36px; border-radius: 10px;
+            background: rgba(255,255,255,.4); border: 2px solid rgba(255,255,255,.7);
+        }
+
+        /* --- Leaderboard Page Styles --- */
+        #leaderboard-page { padding: 20px; box-sizing: border-box; text-align: center; }
+        #leaderboard-page h1 { font-size: 28px; margin-bottom: 20px; }
+        #leaderboard-list { list-style: none; padding: 0; margin: 0; width: 100%; }
+        #leaderboard-list li {
+            display: flex; align-items: center; padding: 8px 12px; margin-bottom: 8px;
+            background: #e9e9e9; border-radius: 8px; font-size: 14px;
+        }
+        #leaderboard-list li span { flex: 1; text-align: right; }
+        #leaderboard-list li .score { flex: 0 0 50px; text-align: center; font-weight: bold; }
+        #leaderboard-list li .time { flex: 0 0 70px; text-align: center; color: #555; }
+        #leaderboard-list li .status { flex: 0 0 30px; text-align: left; font-size: 18px; }
+        #leaderboard-list li:nth-child(1) { background: #ffd700; font-weight: bold; }
+        #leaderboard-list li:nth-child(2) { background: #c0c0c0; }
+        #leaderboard-list li:nth-child(3) { background: #cd7f32; }
+        #leaderboard-page button, #profile-page .back-btn {
+             padding: 15px 40px; font-size: 20px; border-radius: 10px;
+             background: #28a745; color: white; border: none; margin-top: 20px;
+        }
+
+        /* --- Profile Page Styles --- */
+        #profile-page { padding: 30px; box-sizing: border-box; text-align: center; align-items: center; }
+        #profile-pic-container { position: relative; }
+        #profile-pic-display { width: 150px; height: 150px; border-radius: 50%; border: 5px solid #fff; box-shadow: 0 0 15px rgba(0,0,0,0.3); object-fit: cover; background: #ccc; }
+        #profile-pic-input { display: none; }
+        #upload-pic-btn {
+            position: absolute; bottom: 5px; right: 5px;
+            width: 40px; height: 40px; border-radius: 50%; background: #007bff; color: white;
+            border: 2px solid white; font-size: 20px; display: flex; justify-content: center; align-items: center;
+        }
+        #profile-username { font-size: 28px; font-weight: bold; margin-top: 20px; }
+        #profile-highscore { font-size: 22px; color: #555; margin-top: 10px; }
+        #save-pic-btn { padding: 10px 20px; font-size: 16px; background: #ffc107; color: black; margin-top: 15px; border-radius: 8px; border: none; display: none; }
+
     </style>
 </head>
 <body>
-    <div id="game-container">
-        <div id="info-bar">
-            <div id="score">النقاط: 0</div>
-            <div id="timer">الوقت: 60</div>
-        </div>
-        <div id="game-board">
-            <div id="start-screen" class="overlay">
-                <h1>لعبة جمع الدوائر</h1>
-                <input type="text" id="player-name-input" placeholder="اكتب اسمك هنا" maxlength="15">
-                <button id="start-btn">ابدأ اللعبة</button>
-            </div>
-            <div id="win-screen" class="overlay">
-                <h1 id="win-message"></h1>
-                <button onclick="location.reload()">العب مجدداً</button>
-            </div>
-            <div id="game-over" class="overlay"><h1>انتهت اللعبة!</h1><button onclick="location.reload()">إعادة اللعب</button></div>
-            <img id="player" src="character.png" alt="Player">
-            <div id="controls">
-                <button id="right-btn">&rarr;</button>
-                <button id="left-btn">&larr;</button>
+
+<!-- Page 1: Game -->
+<div id="game-container" class="page">
+    <div id="info-bar">
+        <button id="profile-btn"></button>
+        <div id="score">النقاط: 0</div>
+        <div id="timer">الوقت: 02:30</div>
+        <button id="pause-btn">⏸</button>
+    </div>
+    <div id="game-board">
+        <div id="start-screen" class="overlay">
+            <h1>إطعام مريومة</h1>
+            <p>لا تنسى ممنوع تخليها تاخذ ممية!</p>
+            <div id="validation-error"></div>
+            <input id="insta-user" placeholder="@user" maxlength="30">
+            <div class="button-group">
+                <button id="start-btn" disabled>ابدأ اللعبة</button>
+                <button id="view-leaderboard-btn">🏆 أفضل 10</button>
             </div>
         </div>
-        <div id="leaderboard">
-            <h2>🏆 أعلى 3 نقاط 🏆</h2>
-            <ol id="leaderboard-list"><li>جار التحميل...</li></ol>
+        <img id="player" src="character.png">
+        <div id="controls">
+            <button id="right-btn">→</button>
+            <button id="left-btn">←</button>
         </div>
     </div>
-    
-    <audio id="collect-sound" src="collect.mp3" preload="auto"></audio>
-    <audio id="lose-sound" src="lose.mp3" preload="auto"></audio>
+</div>
 
-    <!-- START: FIREBASE SDK INTEGRATION -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <!-- END: FIREBASE SDK INTEGRATION -->
+<!-- Page 2: Leaderboard -->
+<div id="leaderboard-page" class="page">
+    <h1>🏆 قائمة أفضل 10 أبطال</h1>
+    <ol id="leaderboard-list"><li>يتم التحميل...</li></ol>
+    <button class="back-btn">العودة للعب</button>
+</div>
 
-    <script>
-        // --- START: FIREBASE CONFIGURATION ---
-        // تم وضع بياناتك الخاصة هنا
-        const firebaseConfig = {
-            apiKey: "AIzaSyAIMPe24MYSMa9s3ZK7SltUi4dPGr6HtoI",
-            authDomain: "game-3a9fe.firebaseapp.com",
-            projectId: "game-3a9fe",
-            storageBucket: "game-3a9fe.appspot.com", // استخدام .appspot.com ليتوافق مع SDK v8
-            messagingSenderId: "78832651966",
-            appId: "1:78832651966:web:a9ee2f54e69ecaf9ad18ef"
-        };
+<!-- Page 3: Profile -->
+<div id="profile-page" class="page">
+    <h1>ملفك الشخصي</h1>
+    <div id="profile-pic-container">
+        <img id="profile-pic-display" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23888' d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Profile Picture">
+        <input type="file" id="profile-pic-input" accept="image/*">
+        <button id="upload-pic-btn" onclick="document.getElementById('profile-pic-input').click()">✏️</button>
+    </div>
+    <button id="save-pic-btn">حفظ الصورة</button>
+    <div id="profile-username">@username</div>
+    <div id="profile-highscore">أعلى نقاط: 0</div>
+    <button class="back-btn">العودة للعب</button>
+</div>
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const leaderboardCollection = db.collection('leaderboard');
-        // --- END: FIREBASE CONFIGURATION ---
 
-        const gameBoard = document.getElementById('game-board');
-        const player = document.getElementById('player');
-        const scoreDisplay = document.getElementById('score');
-        const timerDisplay = document.getElementById('timer');
-        const startScreen = document.getElementById('start-screen');
-        const winScreen = document.getElementById('win-screen');
-        const gameOverDisplay = document.getElementById('game-over');
-        const startBtn = document.getElementById('start-btn');
-        const collectSound = document.getElementById('collect-sound');
-        const loseSound = document.getElementById('lose-sound');
-        const playerNameInput = document.getElementById('player-name-input');
-        const winMessage = document.getElementById('win-message');
-        const leaderboardList = document.getElementById('leaderboard-list');
+<audio id="collect-sound" src="collect.mp3"></audio>
+<audio id="lose-sound" src="lose.mp3"></audio>
 
-        let score = 0, timeLeft = 60, playerSpeed = 6; 
-        let shapeInterval, timerInterval;
-        let isGameOver = false;
-        let movement = { left: false, right: false };
-        let isFrenzyMode = false;
-        let playerName = "";
+<!-- ========== FIREBASE v12 ========== -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getFirestore, collection, doc, getDoc, setDoc, addDoc, query, orderBy, limit, getDocs, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-storage.js";
 
-        startBtn.addEventListener('click', () => {
-            playerName = playerNameInput.value.trim() || "يا بطل";
-            startScreen.style.display = 'none';
-            player.style.display = 'block';
+    const firebaseConfig = {
+      apiKey: "AIzaSyDsJ6fm4SFNLnRuHj-b80L0BweGVNkoiIM",
+      authDomain: "game-21f55.firebaseapp.com",
+      projectId: "game-21f55",
+      storageBucket: "game-21f55.firebasestorage.app",
+      messagingSenderId: "88852711134",
+      appId: "1:88852711134:web:c504445d3d800c3e13244f"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+    const leaderboardRef = collection(db, "leaderboard");
+    const usersRef = collection(db, "users");
+
+    /* ---------- DOM ELEMENTS ---------- */
+    const pages = document.querySelectorAll('.page');
+    const gameContainer = document.getElementById("game-container");
+    const leaderboardPage = document.getElementById("leaderboard-page");
+    const profilePage = document.getElementById("profile-page");
+    const board = document.getElementById("game-board");
+    const player = document.getElementById("player");
+    const scoreEl = document.getElementById("score");
+    const timerEl = document.getElementById("timer");
+    const startScreen = document.getElementById("start-screen");
+    const leaderboardList = document.getElementById("leaderboard-list");
+    const collectSound = document.getElementById("collect-sound");
+    const loseSound = document.getElementById("lose-sound");
+    const leftBtn = document.getElementById("left-btn");
+    const rightBtn = document.getElementById("right-btn");
+    const startBtn = document.getElementById("start-btn");
+    const pauseBtn = document.getElementById("pause-btn");
+    const viewLeaderboardBtn = document.getElementById("view-leaderboard-btn");
+    const instaUser = document.getElementById("insta-user");
+    const validationError = document.getElementById("validation-error");
+    const backBtns = document.querySelectorAll('.back-btn');
+    const profileBtn = document.getElementById('profile-btn');
+
+    // Profile Page Elements
+    const profilePicDisplay = document.getElementById('profile-pic-display');
+    const profilePicInput = document.getElementById('profile-pic-input');
+    const savePicBtn = document.getElementById('save-pic-btn');
+    const profileUsername = document.getElementById('profile-username');
+    const profileHighscore = document.getElementById('profile-highscore');
+
+
+    /* ---------- GAME STATE ---------- */
+    const INITIAL_TIME = 150; // 2.5 minutes
+    let score = 0, time = INITIAL_TIME, speed = 6;
+    let isGameOver = false, isPaused = false, frenzy = false;
+    let move = { left: false, right: false };
+    let shapeInterval, timerInterval, gameLoopId;
+    let fallingShapes = [];
+    let currentUser = null; // To hold the logged-in user's data
+
+    /* ---------- PAGE NAVIGATION ---------- */
+    function showPage(pageToShow) {
+        pages.forEach(p => p.style.display = 'none');
+        pageToShow.style.display = 'flex';
+    }
+
+    viewLeaderboardBtn.onclick = () => {
+        loadLeaderboard();
+        showPage(leaderboardPage);
+    };
+    profileBtn.onclick = () => {
+        loadProfile();
+        showPage(profilePage);
+    };
+    backBtns.forEach(btn => btn.onclick = () => showPage(gameContainer));
+
+
+    /* ---------- USER AUTH & PROFILE ---------- */
+    const instaRegex = /^@[a-zA-Z0-9_]{1,30}$/;
+    instaUser.addEventListener('input', () => {
+        const user = instaUser.value;
+        if (instaRegex.test(user)) {
+            startBtn.disabled = false;
+            validationError.textContent = '';
+        } else {
+            startBtn.disabled = true;
+            validationError.textContent = 'اليوزر يجب أن يبدأ بـ @ ويحتوي حروف إنجليزية وأرقام فقط';
+        }
+    });
+
+    startBtn.onclick = async () => {
+        const username = instaUser.value;
+        startBtn.disabled = true;
+        startBtn.textContent = 'جاري التحقق...';
+
+        try {
+            const userDocRef = doc(db, "users", username);
+            const userDoc = await getDoc(userDocRef);
+
+            if (userDoc.exists()) {
+                // User exists, log them in
+                currentUser = { username, ...userDoc.data() };
+                showWelcomeMessage(`أهلاً بعودتك ${username}`);
+            } else {
+                // New user, create an account
+                const newUser = {
+                    username,
+                    highScore: 0,
+                    profilePictureUrl: null,
+                    createdAt: serverTimestamp()
+                };
+                await setDoc(userDocRef, newUser);
+                currentUser = newUser;
+                showWelcomeMessage(`أهلاً بك ${username}!`);
+            }
+            
+            localStorage.setItem('savedMariomaUser', username);
+            updateProfileIcon();
+            startScreen.style.display = "none";
+            player.style.display = "block";
             startGame();
-        });
 
-        function startGame() {
-            shapeInterval = setInterval(createShape, 1000);
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                timerDisplay.textContent = \`الوقت: \${timeLeft}\`;
-                if (timeLeft === 10 && !isFrenzyMode) {
-                    isFrenzyMode = true;
-                    timerDisplay.classList.add('time-warning');
-                    clearInterval(shapeInterval);
-                    shapeInterval = setInterval(createShape, 450);
-                }
-                if (timeLeft <= 0) winGame();
-            }, 1000);
-            requestAnimationFrame(gameLoop);
+        } catch (error) {
+            console.error("Error during user check: ", error);
+            validationError.textContent = 'حدث خطأ، حاول مرة أخرى.';
+        } finally {
+            startBtn.disabled = false;
+            startBtn.textContent = 'ابدأ اللعبة';
+        }
+    };
+    
+    async function loadProfile() {
+        if (!currentUser) {
+            // This might happen if the user clicks profile before logging in
+            profileUsername.textContent = 'لم يتم تسجيل الدخول';
+            profileHighscore.textContent = 'أعلى نقاط: --';
+            return;
+        }
+        // Fetch the latest user data for accuracy
+        const userDoc = await getDoc(doc(db, "users", currentUser.username));
+        if (userDoc.exists()) {
+             currentUser = { username: currentUser.username, ...userDoc.data() };
         }
 
-        function gameLoop() {
-            if (isGameOver) return;
-            if (movement.left) movePlayer('left');
-            if (movement.right) movePlayer('right');
-            requestAnimationFrame(gameLoop);
+        profileUsername.textContent = currentUser.username;
+        profileHighscore.textContent = `أعلى نقاط: ${currentUser.highScore || 0}`;
+        if (currentUser.profilePictureUrl) {
+            profilePicDisplay.src = currentUser.profilePictureUrl;
+        } else {
+            // Reset to default placeholder if no picture
+             profilePicDisplay.src = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\'%3E%3Cpath fill=\'%23888\' d=\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\'/%3E%3C/svg%3E';
         }
-
-        function movePlayer(direction) {
-            const left = player.offsetLeft;
-            const boardWidth = gameBoard.offsetWidth;
-            const playerWidth = player.offsetWidth;
-            if (direction === 'left' && left > 0) {
-                player.style.left = Math.max(0, left - playerSpeed) + 'px';
-            } else if (direction === 'right' && left < (boardWidth - playerWidth)) {
-                player.style.left = Math.min(boardWidth - playerWidth, left + playerSpeed) + 'px';
-            }
+    }
+    
+    profilePicInput.onchange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                profilePicDisplay.src = e.target.result;
+                savePicBtn.style.display = 'inline-block';
+            };
+            reader.readAsDataURL(file);
         }
+    };
+    
+    savePicBtn.onclick = async () => {
+        if (!currentUser || !profilePicInput.files[0]) return;
         
-        document.addEventListener('keydown', (e) => { if (e.key === 'ArrowLeft') movement.left = true; if (e.key === 'ArrowRight') movement.right = true; });
-        document.addEventListener('keyup', (e) => { if (e.key === 'ArrowLeft') movement.left = false; if (e.key === 'ArrowRight') movement.right = false; });
-        ['mousedown', 'touchstart'].forEach(evt => {
-            document.getElementById('left-btn').addEventListener(evt, (e) => { e.preventDefault(); movement.left = true; });
-            document.getElementById('right-btn').addEventListener(evt, (e) => { e.preventDefault(); movement.right = true; });
-        });
-        ['mouseup', 'touchend', 'mouseleave'].forEach(evt => {
-            document.body.addEventListener(evt, () => { movement.left = false; movement.right = false; });
-        });
+        savePicBtn.disabled = true;
+        savePicBtn.textContent = 'جاري الرفع...';
 
-        function winGame() {
-            if (isGameOver) return;
-            isGameOver = true;
-            stopAllIntervals();
-            saveScore(playerName, score);
-            winMessage.textContent = \`مبروك \${playerName}! نقاطك هي: \${score}\`;
-            winScreen.style.display = 'flex';
+        const file = profilePicInput.files[0];
+        const storageRef = ref(storage, `profile_pictures/${currentUser.username}`);
+        
+        try {
+            const snapshot = await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(snapshot.ref);
+            
+            const userDocRef = doc(db, "users", currentUser.username);
+            await updateDoc(userDocRef, {
+                profilePictureUrl: downloadURL
+            });
+            
+            currentUser.profilePictureUrl = downloadURL; // Update local state
+            updateProfileIcon(); // Update the icon in the info bar
+            
+            savePicBtn.style.display = 'none';
+             showWelcomeMessage('تم حفظ الصورة بنجاح');
+
+        } catch (error) {
+            console.error("Error uploading image: ", error);
+             showWelcomeMessage('فشل رفع الصورة');
+        } finally {
+             savePicBtn.disabled = false;
+             savePicBtn.textContent = 'حفظ الصورة';
         }
+    };
 
-        function loseGame() {
-            if (isGameOver) return;
-            isGameOver = true;
-            stopAllIntervals();
-            loseSound.play();
-            saveScore(playerName, score); 
-            player.style.display = 'none'; 
-            gameOverDisplay.style.display = 'flex';
+    function updateProfileIcon() {
+        if (currentUser && currentUser.profilePictureUrl) {
+            profileBtn.style.backgroundImage = `url(${currentUser.profilePictureUrl})`;
+        } else {
+             profileBtn.style.backgroundImage = `url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"%3E%3Cpath fill="%23FFF" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/%3E%3C/svg%3E')`;
+             profileBtn.style.backgroundColor = '#aaa';
         }
+    }
 
-        function createShape() {
-            if (isGameOver) return;
-            const shape = document.createElement('div');
-            shape.classList.add('shape', Math.random() < 0.7 ? 'circle' : 'triangle');
-            shape.style.left = Math.random() * (gameBoard.offsetWidth - 40) + 'px';
-            gameBoard.appendChild(shape);
-            moveShape(shape);
+    /* ---------- WELCOME MESSAGE ---------- */
+    function showWelcomeMessage(message) {
+        const welcomeDiv = document.createElement('div');
+        welcomeDiv.textContent = message;
+        // Styling...
+        welcomeDiv.style.position = 'fixed';
+        welcomeDiv.style.top = '20px';
+        welcomeDiv.style.left = '50%';
+        welcomeDiv.style.transform = 'translateX(-50%)';
+        welcomeDiv.style.padding = '10px 25px';
+        welcomeDiv.style.background = 'rgba(40, 167, 69, 0.9)';
+        welcomeDiv.style.color = 'white';
+        welcomeDiv.style.borderRadius = '10px';
+        welcomeDiv.style.zIndex = '1000';
+        welcomeDiv.style.fontSize = '18px';
+        welcomeDiv.style.fontWeight = 'bold';
+        welcomeDiv.style.boxShadow = '0 4px 10px rgba(0,0,0,0.2)';
+        document.body.appendChild(welcomeDiv);
+        setTimeout(() => {
+            welcomeDiv.style.transition = 'opacity 0.5s ease';
+            welcomeDiv.style.opacity = '0';
+            setTimeout(() => welcomeDiv.remove(), 500);
+        }, 2500);
+    }
+    
+    /* ---------- GAME CORE ---------- */
+    // Functions: startGame, pauseGame, resumeGame, updateTimer, gameLoop, movePlayer, createShape, collide are mostly unchanged
+    function startGame() {
+        isPaused = false;
+        isGameOver = true;
+        setTimeout(() => { isGameOver = false; }, 100);
+        resumeGame();
+        gameLoop();
+    }
+    function pauseGame() {
+        if (isGameOver) return;
+        isPaused = true;
+        pauseBtn.textContent = '▶️';
+        clearInterval(timerInterval);
+        clearInterval(shapeInterval);
+    }
+    function resumeGame() {
+        if (isGameOver) return;
+        isPaused = false;
+        pauseBtn.textContent = '⏸';
+        shapeInterval = setInterval(createShape, frenzy ? 450 : 1000);
+        timerInterval = setInterval(updateTimer, 1000);
+    }
+    pauseBtn.onclick = () => { isPaused ? resumeGame() : pauseGame(); };
+    function updateTimer() {
+        time--;
+        const minutes = Math.floor(time / 60).toString().padStart(2, '0');
+        const seconds = (time % 60).toString().padStart(2, '0');
+        timerEl.textContent = `الوقت: ${minutes}:${seconds}`;
+        if (time <= 10 && !frenzy) {
+            frenzy = true;
+            timerEl.classList.add("time-warning");
+            clearInterval(shapeInterval);
+            shapeInterval = setInterval(createShape, 450);
         }
-
-        function moveShape(shape) {
-            let topPosition = -50;
-            let shapeSpeed = (Math.random() * 3 + 2) * (isFrenzyMode ? 1.6 : 1);
-            function fall() {
-                if (isGameOver || topPosition > gameBoard.offsetHeight) { shape.remove(); return; }
-                topPosition += shapeSpeed;
-                shape.style.top = topPosition + 'px';
-                if (detectCollision(player, shape)) {
-                    if (shape.classList.contains('circle')) {
-                        score++;
-                        scoreDisplay.textContent = \`النقاط: \${score}\`;
-                        shape.remove();
-                        collectSound.currentTime = 0; collectSound.play();
-                        player.classList.add('collected-animation');
-                        setTimeout(() => player.classList.remove('collected-animation'), 300);
-                    } else { loseGame(); }
-                } else { requestAnimationFrame(fall); }
+        if (time <= 0) { winGame(); }
+    }
+    function gameLoop() {
+        if (isGameOver || isPaused) {
+            gameLoopId = requestAnimationFrame(gameLoop);
+            return;
+        }
+        if (move.left) movePlayer(-speed);
+        if (move.right) movePlayer(speed);
+        for (let i = fallingShapes.length - 1; i >= 0; i--) {
+            const shapeData = fallingShapes[i];
+            shapeData.y += shapeData.fallSpeed;
+            shapeData.element.style.top = shapeData.y + "px";
+            if (collide(player, shapeData.element)) {
+                if (shapeData.element.classList.contains("circle")) {
+                    score++;
+                    scoreEl.textContent = `النقاط: ${score}`;
+                    collectSound.currentTime = 0;
+                    collectSound.play();
+                    player.classList.add("collected-animation");
+                    setTimeout(() => player.classList.remove("collected-animation"), 300);
+                    shapeData.element.remove();
+                    fallingShapes.splice(i, 1);
+                } else {
+                    loseGame();
+                }
+            } else if (shapeData.y > board.offsetHeight) {
+                shapeData.element.remove();
+                fallingShapes.splice(i, 1);
             }
-            requestAnimationFrame(fall);
         }
+        gameLoopId = requestAnimationFrame(gameLoop);
+    }
+    function movePlayer(dx) {
+        const x = player.offsetLeft + dx;
+        const max = board.offsetWidth - player.offsetWidth;
+        player.style.left = Math.max(0, Math.min(max, x)) + "px";
+    }
+    function createShape() {
+        const s = document.createElement("div");
+        s.className = "shape " + (Math.random() < 0.7 ? "circle" : "triangle");
+        s.style.left = Math.random() * (board.offsetWidth - 40) + "px";
+        board.appendChild(s);
+        fallingShapes.push({ element: s, y: -50, fallSpeed: (Math.random() * 3 + 2) * (frenzy ? 1.6 : 1) });
+    }
+    function collide(a, b) {
+        const A = a.getBoundingClientRect();
+        const B = b.getBoundingClientRect();
+        return !(A.right < B.left || A.left > B.right || A.bottom < B.top || A.top > B.bottom);
+    }
 
-        function detectCollision(a, b) {
-            const aRect = a.getBoundingClientRect(); const bRect = b.getBoundingClientRect();
-            return !(aRect.bottom < bRect.top || aRect.top > bRect.bottom || aRect.right < bRect.left || aRect.left > bRect.right);
+    async function endGame(status) {
+        if (isGameOver) return;
+        isGameOver = true;
+        pauseGame();
+        cancelAnimationFrame(gameLoopId);
+        if (status === 'loss') { loseSound.play(); }
+        await saveScore(status);
+        showPage(leaderboardPage);
+    }
+    const winGame = () => endGame('win');
+    const loseGame = () => endGame('loss');
+
+    /* ---------- CONTROLS ---------- */
+    // Unchanged
+    document.addEventListener("keydown", e => { if (e.key === "ArrowLeft") move.left = true; if (e.key === "ArrowRight") move.right = true; });
+    document.addEventListener("keyup", e => { if (e.key === "ArrowLeft") move.left = false; if (e.key === "ArrowRight") move.right = false; });
+    leftBtn.addEventListener("mousedown", () => move.left = true);
+    leftBtn.addEventListener("touchstart", (e) => { e.preventDefault(); move.left = true; });
+    rightBtn.addEventListener("mousedown", () => move.right = true);
+    rightBtn.addEventListener("touchstart", (e) => { e.preventDefault(); move.right = true; });
+    document.addEventListener("mouseup", () => { move.left = false; move.right = false; });
+    document.addEventListener("touchend", () => { move.left = false; move.right = false; });
+
+    /* ---------- FIREBASE & LEADERBOARD ---------- */
+    async function saveScore(status) {
+        if (!currentUser || score <= 0) return;
+
+        const timeSpent = INITIAL_TIME - time;
+        try {
+            // 1. Add score to the public leaderboard
+            await addDoc(leaderboardRef, {
+                name: currentUser.username,
+                score,
+                timeSpent,
+                status,
+                createdAt: serverTimestamp()
+            });
+            // 2. Check and update user's high score
+            if (score > (currentUser.highScore || 0)) {
+                const userDocRef = doc(db, "users", currentUser.username);
+                await updateDoc(userDocRef, {
+                    highScore: score
+                });
+                currentUser.highScore = score; // Update local state
+            }
+        } catch (error) {
+            console.error("Error saving score: ", error);
         }
+    }
 
-        function stopAllIntervals() {
-            clearInterval(shapeInterval); clearInterval(timerInterval);
-        }
-
-        // --- START: وظائف قائمة المتصدرين الجديدة (Firebase) ---
-        function saveScore(name, score) {
-            if (!name || score <= 0) {
-                displayLeaderboard(); // عرض القائمة حتى لو لم يسجل اللاعب نقاط
+    async function loadLeaderboard() {
+        leaderboardList.innerHTML = "<li>يتم التحميل...</li>";
+        try {
+            const q = query(leaderboardRef, orderBy("score", "desc"), limit(10));
+            const snap = await getDocs(q);
+            if (snap.empty) {
+                leaderboardList.innerHTML = "<li>لا توجد نقاط بعد، كن أول الأبطال!</li>";
                 return;
             }
-            leaderboardCollection.add({
-                name: name,
-                score: score,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            })
-            .then(() => {
-                console.log("تم حفظ النقاط بنجاح!");
-                displayLeaderboard(); // تحديث القائمة بعد الحفظ
-            })
-            .catch((error) => {
-                console.error("خطأ في حفظ النقاط: ", error);
+            leaderboardList.innerHTML = "";
+            snap.forEach(d => {
+                const data = d.data();
+                const li = document.createElement("li");
+                const minutes = Math.floor(data.timeSpent / 60).toString().padStart(2, '0');
+                const seconds = (data.timeSpent % 60).toString().padStart(2, '0');
+                li.innerHTML = `
+                    <span>${data.name}</span>
+                    <strong class="score">${data.score}</strong>
+                    <span class="time">${minutes}:${seconds}</span>
+                    <span class="status">${data.status === 'win' ? '⚡' : '💫'}</span>
+                `;
+                leaderboardList.appendChild(li);
             });
+        } catch (error) {
+            console.error("Error loading leaderboard: ", error);
+            leaderboardList.innerHTML = "<li>حدث خطأ في تحميل القائمة.</li>";
         }
+    }
 
-        function displayLeaderboard() {
-            leaderboardList.innerHTML = '<li>جار التحميل...</li>';
-            leaderboardCollection.orderBy('score', 'desc').limit(3).get()
-                .then(querySnapshot => {
-                    leaderboardList.innerHTML = '';
-                    if (querySnapshot.empty) {
-                        leaderboardList.innerHTML = '<li>لم يتم تسجيل أي نقاط بعد</li>';
-                        return;
-                    }
-                    querySnapshot.forEach((doc, index) => {
-                        const entry = doc.data();
-                        const li = document.createElement('li');
-                        li.innerHTML = \`<span>\${index + 1}. \${entry.name}</span><strong>\${entry.score}</strong>\`;
-                        leaderboardList.appendChild(li);
-                    });
-                })
-                .catch(error => {
-                    console.error("خطأ في جلب قائمة المتصدرين: ", error);
-                    leaderboardList.innerHTML = '<li>حدث خطأ في تحميل القائمة</li>';
-                });
+    /* ---------- INITIAL SETUP ---------- */
+    async function loadSavedUser() {
+        const savedUser = localStorage.getItem('savedMariomaUser');
+        if (savedUser) {
+            instaUser.value = savedUser;
+            instaUser.dispatchEvent(new Event('input'));
+
+            // Auto-login the user in the background
+            const userDoc = await getDoc(doc(db, "users", savedUser));
+            if (userDoc.exists()) {
+                currentUser = { username: savedUser, ...userDoc.data() };
+                updateProfileIcon();
+            }
         }
-        // --- END: وظائف قائمة المتصدرين الجديدة (Firebase) ---
+    }
 
-        document.addEventListener('DOMContentLoaded', displayLeaderboard);
-    </script>
+    showPage(gameContainer);
+    loadSavedUser();
+
+</script>
 </body>
 </html>
