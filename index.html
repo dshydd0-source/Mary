@@ -20,12 +20,7 @@
 
         /* --- Game UI & Info Bar --- */
         #info-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; font-size: 20px; background: #fff; }
-        #profile-btn {
-            background: #ccc; border: none; padding: 0; width: 40px; height: 40px;
-            border-radius: 50%; background-size: cover; background-position: center;
-            visibility: hidden; /* Hidden until user logs in */
-        }
-        #pause-btn { font-size: 24px; background: none; border: none; padding: 0 10px; }
+        #pause-btn { font-size: 24px; background: none; border: none; padding: 0 10px; margin-left: auto; }
         #game-board { position: relative; flex-grow: 1; background: lightpink; overflow: hidden; border-top: 3px solid #333; border-bottom: 3px solid #333; }
         #player { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; display: none; object-fit: contain; }
 
@@ -33,7 +28,6 @@
         .shape { position: absolute; top: -50px; }
         .circle { width: 30px; height: 30px; background: #f44336; border-radius: 50%; }
         .triangle { width: 40px; height: 40px; background: url('obstacle.png') center/contain no-repeat; }
-        /* NEW simpler animation */
         @keyframes simple-collect {
           50% { opacity: 0.6; }
         }
@@ -64,26 +58,15 @@
 
         /* --- Leaderboard Page --- */
         #leaderboard-page { padding: 20px; box-sizing: border-box; text-align: center; }
-        #leaderboard-page h1, #profile-page h1 { font-size: 28px; margin-bottom: 20px; }
+        #leaderboard-page h1 { font-size: 28px; margin-bottom: 20px; }
         #leaderboard-list { list-style: none; padding: 0; margin: 0; width: 100%; }
-        #leaderboard-list li { display: flex; align-items: center; padding: 8px 12px; margin-bottom: 8px; background: #e9e9e9; border-radius: 8px; font-size: 16px; }
-        .leaderboard-pic { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #ccc; margin-left: 15px; }
+        #leaderboard-list li { display: flex; align-items: center; padding: 12px; margin-bottom: 8px; background: #e9e9e9; border-radius: 8px; font-size: 18px; }
         #leaderboard-list li .name { flex: 1; text-align: right; }
-        #leaderboard-list li .score { flex: 0 0 60px; text-align: center; font-weight: bold; }
+        #leaderboard-list li .score { flex: 0 0 80px; text-align: center; font-weight: bold; }
         #leaderboard-list li:nth-child(1) { background: #ffd700; font-weight: bold; }
         #leaderboard-list li:nth-child(2) { background: #c0c0c0; }
         #leaderboard-list li:nth-child(3) { background: #cd7f32; }
         .back-btn { padding: 15px 40px; font-size: 20px; border-radius: 10px; background: #28a745; color: white; border: none; margin-top: 20px; }
-
-        /* --- Profile Page --- */
-        #profile-page { padding: 30px; box-sizing: border-box; text-align: center; align-items: center; justify-content: center; }
-        #profile-pic-container { position: relative; }
-        #profile-pic-display { width: 150px; height: 150px; border-radius: 50%; border: 5px solid #fff; box-shadow: 0 0 15px rgba(0,0,0,0.3); object-fit: cover; background: #ccc; }
-        #profile-pic-input { display: none; }
-        #upload-pic-btn { position: absolute; bottom: 5px; right: 5px; width: 40px; height: 40px; border-radius: 50%; background: #007bff; color: white; border: 2px solid white; font-size: 20px; display: flex; justify-content: center; align-items: center; }
-        #save-pic-btn { padding: 10px 20px; font-size: 16px; background: #ffc107; color: black; margin-top: 15px; border-radius: 8px; border: none; display: none; }
-        #profile-username { font-size: 28px; font-weight: bold; margin-top: 20px; }
-        #profile-highscore { font-size: 22px; color: #555; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -91,7 +74,6 @@
 <!-- Page 1: Game -->
 <div id="game-container" class="page">
     <div id="info-bar">
-        <button id="profile-btn"></button>
         <div id="score">النقاط: 0</div>
         <div id="timer">الوقت: 00:00</div>
         <button id="pause-btn">⏸</button>
@@ -127,49 +109,33 @@
     <button class="back-btn">العب مرة أخرى</button>
 </div>
 
-<!-- Page 3: Profile -->
-<div id="profile-page" class="page">
-    <h1>ملفك الشخصي</h1>
-    <div id="profile-pic-container">
-        <img id="profile-pic-display" crossorigin="anonymous" src="..." alt="Profile Picture">
-        <input type="file" id="profile-pic-input" accept="image/*">
-        <button id="upload-pic-btn" onclick="document.getElementById('profile-pic-input').click()">✏️</button>
-    </div>
-    <button id="save-pic-btn">حفظ الصورة</button>
-    <div id="profile-username">@username</div>
-    <div id="profile-highscore">أعلى نقاط: 0</div>
-    <button class="back-btn">العودة للعب</button>
-</div>
-
 <audio id="collect-sound" src="collect.mp3"></audio>
 <audio id="lose-sound" src="lose.mp3"></audio>
-<!-- تم التعديل: إضافة مشغل موسيقى الخلفية -->
-<!-- ملاحظة: يجب تغيير 'background_music.mp3' إلى اسم ومسار ملف الموسيقى الصحيح -->
-<audio id="background-music" src="background.mp3" loop></audio>
+<audio id="background-music" src="background_music.mp3" loop></audio>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, setDoc, query, orderBy, limit, getDocs, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-storage.js";
-
+    // تم الحذف: استيراد مكتبة التخزين
+    
     const firebaseConfig = {
       apiKey: "AIzaSyDsJ6fm4SFNLnRuHj-b80L0BweGVNkoiIM",
       authDomain: "game-21f55.firebaseapp.com",
       projectId: "game-21f55",
-      storageBucket: "game-21f55.firebasestorage.app",
+      storageBucket: "game-21f55.firebasestorage.app", // يبقى هذا السطر موجوداً
       messagingSenderId: "88852711134",
       appId: "1:88852711134:web:c504445d3d800c3e13244f"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const storage = getStorage(app);
+    // تم الحذف: const storage
     const usersRef = collection(db, "users");
 
     const pages = document.querySelectorAll('.page');
     const gameContainer = document.getElementById("game-container");
     const leaderboardPage = document.getElementById("leaderboard-page");
-    const profilePage = document.getElementById("profile-page");
+    // تم الحذف: const profilePage
     const board = document.getElementById("game-board");
     const player = document.getElementById("player");
     const scoreEl = document.getElementById("score");
@@ -180,7 +146,7 @@
     const leaderboardList = document.getElementById("leaderboard-list");
     const collectSound = document.getElementById("collect-sound");
     const loseSound = document.getElementById("lose-sound");
-    const backgroundMusic = document.getElementById("background-music"); // تم التعديل: الحصول على عنصر الموسيقى
+    const backgroundMusic = document.getElementById("background-music");
     const startBtn = document.getElementById("start-btn");
     const pauseBtn = document.getElementById("pause-btn");
     const viewLeaderboardBtn = document.getElementById("view-leaderboard-btn");
@@ -188,23 +154,16 @@
     const privateIdInput = document.getElementById("private-id");
     const validationError = document.getElementById("validation-error");
     const backBtns = document.querySelectorAll('.back-btn');
-    const profileBtn = document.getElementById('profile-btn');
-    const profilePicDisplay = document.getElementById('profile-pic-display');
-    const profilePicInput = document.getElementById('profile-pic-input');
-    const savePicBtn = document.getElementById('save-pic-btn');
-    const profileUsername = document.getElementById('profile-username');
-    const profileHighscore = document.getElementById('profile-highscore');
+    // تم الحذف: متغيرات صفحة الملف الشخصي
 
-    const INITIAL_TIME = 600; // تم التعديل: 10 دقائق (600 ثانية)
-    let score = 0, time = 0, speed = 6, speedModifier = 1.0; // تم التعديل: إضافة متغير لزيادة السرعة
+    const INITIAL_TIME = 600; 
+    let score = 0, time = 0, speed = 6, speedModifier = 1.0;
     let isGameOver = true, isPaused = false, frenzy = false;
     let move = { left: false, right: false };
     let shapeInterval, timerInterval, gameLoopId;
     let fallingShapes = [];
     let currentUser = null;
-    const defaultPic = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23888' d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E`;
-    profilePicDisplay.src = defaultPic;
-
+    // تم الحذف: const defaultPic
 
     function showPage(pageToShow) {
         pages.forEach(p => p.style.display = 'none');
@@ -216,11 +175,7 @@
         showPage(leaderboardPage);
     };
 
-    profileBtn.onclick = () => {
-        if (!currentUser) return;
-        loadProfile();
-        showPage(profilePage);
-    };
+    // تم الحذف: profileBtn.onclick
 
     backBtns.forEach(btn => {
         btn.onclick = () => {
@@ -230,7 +185,7 @@
     });
 
     const instaRegex = /^@[a-zA-Z0-9_]{1,30}$/;
-    const idRegex = /^[a-zA-Z0-9]{6,}$/; // UPDATED Regex
+    const idRegex = /^[a-zA-Z0-9]{6,}$/;
 
     function validateInputs() {
         const user = instaUser.value;
@@ -243,7 +198,6 @@
             if (user && !instaRegex.test(user)) {
                 validationError.textContent = 'يوزر الانستغرام يجب أن يبدأ بـ @';
             } else if (privateId && !idRegex.test(privateId)) {
-                // UPDATED Validation message
                 validationError.textContent = 'المعرّف الخاص يجب أن يتكون من 6 أحرف أو أرقام على الأقل';
             } else {
                 validationError.textContent = '';
@@ -255,7 +209,7 @@
 
     startBtn.onclick = async () => {
         const username = instaUser.value;
-        const privateId = privateIdInput.value; // UPDATED variable name
+        const privateId = privateIdInput.value;
         startBtn.disabled = true;
         startBtn.textContent = 'جاري التحقق...';
         validationError.textContent = '';
@@ -266,7 +220,7 @@
 
             if (userDoc.exists()) {
                 const userData = userDoc.data();
-                if (userData.privateId === privateId) { // UPDATED field name
+                if (userData.privateId === privateId) {
                     currentUser = { username, ...userData };
                     showWelcomeMessage(`أهلاً بعودتك ${username}`);
                     loginSuccess();
@@ -274,11 +228,11 @@
                     validationError.textContent = 'المعرّف الخاص غير صحيح.';
                 }
             } else {
+                // تم التعديل: إزالة حقل الصورة من المستخدم الجديد
                 const newUser = {
                     username,
-                    privateId, // UPDATED field name
+                    privateId,
                     highScore: 0,
-                    profilePictureUrl: null,
                     createdAt: serverTimestamp()
                 };
                 await setDoc(userDocRef, newUser);
@@ -297,8 +251,7 @@
     
     function loginSuccess() {
         localStorage.setItem('savedMariomaUser', JSON.stringify({u: currentUser.username, p: currentUser.privateId}));
-        updateProfileIcon();
-        profileBtn.style.visibility = 'visible';
+        // تم الحذف: تحديث وإظهار زر البروفايل
         startScreen.style.display = "none";
         startNewGameRound();
     }
@@ -306,7 +259,7 @@
     function startNewGameRound() {
         score = 0;
         time = INITIAL_TIME;
-        speedModifier = 1.0; // تم التعديل: إعادة تعيين معامل السرعة
+        speedModifier = 1.0;
         isGameOver = false;
         isPaused = false;
         frenzy = false;
@@ -321,7 +274,6 @@
         clearInterval(shapeInterval);
         cancelAnimationFrame(gameLoopId);
         
-        // تم التعديل: إعادة تشغيل موسيقى الخلفية من البداية
         backgroundMusic.currentTime = 0;
 
         updateTimer();
@@ -335,7 +287,7 @@
         pauseBtn.textContent = '▶️';
         clearInterval(timerInterval);
         clearInterval(shapeInterval);
-        backgroundMusic.pause(); // تم التعديل: إيقاف الموسيقى مؤقتاً
+        backgroundMusic.pause();
     }
 
     function resumeGame() {
@@ -344,7 +296,7 @@
         pauseBtn.textContent = '⏸';
         shapeInterval = setInterval(createShape, frenzy ? 450 : 900);
         timerInterval = setInterval(updateTimer, 1000);
-        backgroundMusic.play(); // تم التعديل: استئناف تشغيل الموسيقى
+        backgroundMusic.play();
     }
     pauseBtn.onclick = () => { isPaused ? resumeGame() : pauseGame(); };
 
@@ -353,11 +305,9 @@
         const seconds = (time % 60).toString().padStart(2, '0');
         timerEl.textContent = `الوقت: ${minutes}:${seconds}`;
 
-        // تم التعديل: زيادة السرعة كل دقيقة
         const minutesPassed = Math.floor((INITIAL_TIME - time) / 60);
         speedModifier = 1.0 + (minutesPassed * 0.2);
 
-        // UPDATED Frenzy mode condition
         if (!frenzy && time > 0 && time <= (INITIAL_TIME / 2)) {
             frenzy = true;
             timerEl.classList.add("time-warning");
@@ -373,7 +323,7 @@
     function endGame(status) {
         if (isGameOver) return;
         isGameOver = true;
-        pauseGame(); // هذه الدالة توقف الموسيقى الآن
+        pauseGame();
         cancelAnimationFrame(gameLoopId);
         
         if (status === 'loss') {
@@ -398,9 +348,9 @@
         if (!currentUser) return;
         if (score > (currentUser.highScore || 0)) {
             const userDocRef = doc(db, "users", currentUser.username);
+            // تم التعديل: إزالة حقل الصورة من عملية الحفظ
             await updateDoc(userDocRef, {
-                highScore: score,
-                profilePictureUrl: currentUser.profilePictureUrl
+                highScore: score
             });
             currentUser.highScore = score;
         }
@@ -421,8 +371,8 @@
                 const data = d.data();
                 if(data.highScore > 0) {
                     const li = document.createElement("li");
+                    // تم التعديل: إزالة وسم الصورة من القائمة
                     li.innerHTML = `
-                        <img class="leaderboard-pic" crossorigin="anonymous" src="${data.profilePictureUrl || defaultPic}" alt="${data.username}">
                         <span class="name">${data.username}</span>
                         <strong class="score">${data.highScore}</strong>
                     `;
@@ -443,7 +393,6 @@
         s.className = "shape " + (Math.random() < 0.7 ? "circle" : "triangle");
         s.style.left = Math.random() * (board.offsetWidth - 40) + "px";
         board.appendChild(s);
-        // تم التعديل: تطبيق معامل السرعة على سرعة سقوط العناصر
         const baseFallSpeed = (Math.random() * 3 + 2);
         const finalFallSpeed = baseFallSpeed * speedModifier * (frenzy ? 1.6 : 1);
         fallingShapes.push({ element: s, y: -50, fallSpeed: finalFallSpeed });
@@ -458,33 +407,8 @@
     document.addEventListener("mousedown", (e) => { if (e.target.id === 'left-btn') move.left = true; if (e.target.id === 'right-btn') move.right = true; });
     document.addEventListener("mouseup", () => { move.left = false; move.right = false; });
 
-    async function loadProfile() {
-        if (!currentUser) return;
-        profileUsername.textContent = currentUser.username;
-        profileHighscore.textContent = `أعلى نقاط: ${currentUser.highScore || 0}`;
-        profilePicDisplay.src = currentUser.profilePictureUrl || defaultPic;
-    }
-    profilePicInput.onchange = (event) => { const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (e) => { profilePicDisplay.src = e.target.result; savePicBtn.style.display = 'inline-block'; }; reader.readAsDataURL(file); } };
-    savePicBtn.onclick = async () => {
-        if (!currentUser || !profilePicInput.files[0]) return;
-        savePicBtn.disabled = true; savePicBtn.textContent = 'جاري الرفع...';
-        const file = profilePicInput.files[0];
-        const storageRef = ref(storage, `profile_pictures/${currentUser.username}`);
-        try {
-            const snapshot = await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(snapshot.ref);
-            await updateDoc(doc(db, "users", currentUser.username), { profilePictureUrl: downloadURL });
-            currentUser.profilePictureUrl = downloadURL;
-            updateProfileIcon();
-            savePicBtn.style.display = 'none'; showWelcomeMessage('تم حفظ الصورة بنجاح');
-        } catch (error) { console.error("Upload error:", error); showWelcomeMessage('فشل رفع الصورة');
-        } finally { savePicBtn.disabled = false; savePicBtn.textContent = 'حفظ الصورة'; }
-    };
-
-    function updateProfileIcon() {
-        profileBtn.style.backgroundImage = `url(${currentUser?.profilePictureUrl || defaultPic})`;
-    }
-
+    // تم الحذف: دوال صفحة الملف الشخصي (loadProfile, onchange, onclick, updateProfileIcon)
+    
     function showWelcomeMessage(message) {
         const div = document.createElement('div');
         div.textContent = message;
