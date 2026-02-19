@@ -43,7 +43,6 @@
 
         /* --- Game UI & Info Bar --- */
         #info-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; font-size: 20px; background: #fff; }
-        /* Updated styles for buttons in info-bar */
         #view-store-btn, #pause-btn { 
             font-size: 24px; 
             background: none; 
@@ -51,7 +50,7 @@
             padding: 0 10px; 
         }
         #view-store-btn {
-            margin-left: auto; /* Pushes the buttons to the right */
+            margin-left: auto;
         }
 
         #game-board { position: relative; flex-grow: 1; background: lightpink; overflow: hidden; border-top: 3px solid #333; border-bottom: 3px solid #333; touch-action: none; }
@@ -141,7 +140,6 @@
     <div id="info-bar">
         <div id="score">النقاط: 0</div>
         <div id="timer">الوقت: 00:00</div>
-        <!-- Buttons moved to the game interface -->
         <button id="view-store-btn">🏪</button>
         <button id="pause-btn">⏸</button>
     </div>
@@ -155,7 +153,6 @@
             <div class="button-group">
                 <button id="start-btn" disabled>دخول / تسجيل</button>
                 <button id="view-leaderboard-btn">🏆 أفضل 10</button>
-                <!-- Store button is now in the info-bar -->
             </div>
         </div>
         <div id="game-over-overlay" class="overlay">
@@ -174,7 +171,7 @@
 <div id="leaderboard-page" class="page">
     <h1>🏆 قائمة أغنى 10 أبطال</h1>
     <ol id="leaderboard-list"><li>يتم التحميل...</li></ol>
-    <button class="back-btn">العودة للرئيسية</button>
+    <button class="back-btn" id="leaderboard-back-btn">العب مرة أخرى</button>
 </div>
 
 <!-- Store Page -->
@@ -182,7 +179,7 @@
     <h1>🏪 المتجر</h1>
     <div id="user-balance">رصيدك: 0</div>
     <ul id="store-item-list"><li>جاري تحميل المنتجات...</li></ul>
-    <button class="back-btn">العودة للرئيسية</button>
+    <button class="back-btn" id="store-back-btn">العودة للعبة</button>
 </div>
 
 
@@ -204,7 +201,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, setDoc, query, orderBy, limit, getDocs, serverTimestamp, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
     
-    // استيراد الدوال من ملف المتجر
     import { initializeStore, renderStore } from './store.js';
 
     const firebaseConfig = {
@@ -244,7 +240,8 @@
         instaUser: document.getElementById("insta-user"),
         privateIdInput: document.getElementById("private-id"),
         validationError: document.getElementById("validation-error"),
-        backBtns: document.querySelectorAll('.back-btn'),
+        leaderboardBackBtn: document.getElementById("leaderboard-back-btn"),
+        storeBackBtn: document.getElementById("store-back-btn"),
         adPopupOverlay: document.getElementById("ad-popup-overlay"),
         closeAdBtn: document.getElementById("close-ad-btn"),
         userBalance: document.getElementById("user-balance"),
@@ -262,7 +259,7 @@
     let fallingShapes = [];
     let currentUser = null;
 
-    // --- تهيئة وحدة المتجر ---
+    // --- Initialize Store Module ---
     initializeStore({
         db, doc, updateDoc, increment,
         getCurrentUser: () => currentUser,
@@ -281,10 +278,6 @@
     }
 
     elements.viewLeaderboardBtn.onclick = () => {
-        if (!currentUser) {
-            showWelcomeMessage("الرجاء تسجيل الدخول أولاً.");
-            return;
-        }
         loadLeaderboard();
         showPage(elements.leaderboardPage);
     };
@@ -294,22 +287,29 @@
             showWelcomeMessage("الرجاء تسجيل الدخول أولاً لزيارة المتجر.");
             return;
         }
-        pauseGame(); // Pause the game when opening the store
-        renderStore(); // استدعاء الدالة من وحدة المتجر
+        if (!isGameOver) {
+            pauseGame(); // Pause the game when opening the store
+        }
+        renderStore();
         showPage(elements.storePage);
     };
 
-    elements.backBtns.forEach(btn => {
-        // When coming back from store/leaderboard, resume the game if it was running
-        btn.onclick = () => {
-            showPage(elements.gameContainer);
-            if (currentUser && !isGameOver) {
-                resumeGame();
-            } else if (!currentUser) {
-                elements.startScreen.style.display = "flex";
-            }
-        };
-    });
+    // --- FIX: Specific logic for each back button ---
+    elements.leaderboardBackBtn.onclick = () => {
+        showPage(elements.gameContainer);
+        if (currentUser) {
+            startNewGameRound(); // Always start a new game from leaderboard
+        } else {
+            elements.startScreen.style.display = "flex";
+        }
+    };
+    
+    elements.storeBackBtn.onclick = () => {
+        showPage(elements.gameContainer);
+        if (currentUser && !isGameOver) {
+            resumeGame(); // Resume game when coming back from store
+        }
+    };
 
     elements.closeAdBtn.onclick = () => {
         elements.adPopupOverlay.style.display = 'none';
@@ -325,12 +325,7 @@
     function validateInputs() {
         const user = elements.instaUser.value;
         const privateId = elements.privateIdInput.value;
-        if (instaRegex.test(user) && idRegex.test(privateId)) {
-            elements.startBtn.disabled = false;
-            elements.validationError.textContent = '';
-        } else {
-            elements.startBtn.disabled = true;
-        }
+        elements.startBtn.disabled = !(instaRegex.test(user) && idRegex.test(privateId));
     }
     elements.instaUser.addEventListener('input', validateInputs);
     elements.privateIdInput.addEventListener('input', validateInputs);
@@ -401,6 +396,7 @@
     }
     
     function pauseGame() {
+        if (isPaused) return;
         isPaused = true;
         elements.pauseBtn.textContent = '▶️';
         clearInterval(timerInterval); clearInterval(shapeInterval);
@@ -408,7 +404,7 @@
     }
 
     function resumeGame() {
-        if (isGameOver) return; 
+        if (isGameOver || !isPaused) return; 
         isPaused = false;
         elements.pauseBtn.textContent = '⏸';
         shapeInterval = setInterval(createShape, frenzy ? 450 : 900);
