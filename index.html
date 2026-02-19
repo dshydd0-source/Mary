@@ -61,46 +61,30 @@
             justify-content: center; align-items: center; text-align: center; padding: 20px; box-sizing: border-box;
         }
         .overlay button { padding: 15px 30px; font-size: 22px; border: none; border-radius: 10px; background: #ffc107; margin-top: 15px; }
-        #start-screen .button-group { display: flex; gap: 10px; margin-top: 10px; }
+        #start-screen .button-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; justify-content: center;}
         #start-screen .button-group button { font-size: 18px; padding: 12px 20px; margin-top: 0; }
         #game-over-overlay { display: none; }
         #game-over-overlay h2 { font-size: 32px; margin-bottom: 10px; }
 
-        /* --- START: New Styles for Ad Popup --- */
+        /* --- Ad Popup Styles --- */
         #ad-popup-overlay {
-            position: fixed; /* Use fixed to cover the whole screen */
-            inset: 0;
+            position: fixed; inset: 0;
             background: rgba(0, 0, 0, 0.8);
-            z-index: 2000; /* Must be higher than other overlays */
-            display: none; /* Hidden by default */
-            justify-content: center;
-            align-items: center;
+            z-index: 2000; display: none; 
+            justify-content: center; align-items: center;
         }
         #ad-popup-content {
-            background: #fff;
-            padding: 20px;
-            padding-top: 40px; /* Space for close button */
-            border-radius: 10px;
-            position: relative;
-            width: 90%;
-            max-width: 400px; /* Adjust as needed */
-            text-align: center;
+            background: #fff; padding: 20px; padding-top: 40px; 
+            border-radius: 10px; position: relative; width: 90%;
+            max-width: 400px; text-align: center;
         }
         #close-ad-btn {
-            position: absolute;
-            top: 5px;
-            left: 10px; /* Changed to left for LTR context */
-            background: transparent;
-            border: none;
-            font-size: 28px;
-            font-weight: bold;
-            color: #555;
-            cursor: pointer;
-            padding: 0 5px;
-            margin: 0;
+            position: absolute; top: 5px; left: 10px; 
+            background: transparent; border: none; font-size: 28px;
+            font-weight: bold; color: #555; cursor: pointer;
+            padding: 0 5px; margin: 0;
         }
-        /* --- END: New Styles for Ad Popup --- */
-
+        
         /* --- Input Fields --- */
         .input-field { padding: 10px; font-size: 18px; border-radius: 8px; border: 2px solid #ddd; margin-bottom: 10px; text-align: center; direction: ltr; width: 80%; }
         #start-btn:disabled { background: #999; cursor: not-allowed; }
@@ -112,32 +96,37 @@
         #controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: space-between; padding: 0 10%; box-sizing: border-box; }
         #controls button { width: 80px; height: 60px; font-size: 36px; border-radius: 10px; background: rgba(255,255,255,.4); border: 2px solid rgba(255,255,255,.7); }
 
-        /* --- Leaderboard Page --- */
-        #leaderboard-page { padding: 20px; box-sizing: border-box; text-align: center; }
-        #leaderboard-page h1 { font-size: 28px; margin-bottom: 20px; }
-        #leaderboard-list { list-style: none; padding: 0; margin: 0; width: 100%; }
-        #leaderboard-list li { display: flex; align-items: center; padding: 12px; margin-bottom: 8px; background: #e9e9e9; border-radius: 8px; font-size: 18px; }
+        /* --- Leaderboard & Store Pages --- */
+        #leaderboard-page, #store-page { padding: 20px; box-sizing: border-box; text-align: center; }
+        #leaderboard-page h1, #store-page h1 { font-size: 28px; margin-bottom: 20px; }
+        #leaderboard-list, #store-item-list { list-style: none; padding: 0; margin: 0; width: 100%; }
+        #leaderboard-list li, .store-item { display: flex; align-items: center; padding: 12px; margin-bottom: 8px; background: #e9e9e9; border-radius: 8px; font-size: 18px; }
         #leaderboard-list li .name { flex: 1; text-align: right; }
         #leaderboard-list li .score { flex: 0 0 80px; text-align: center; font-weight: bold; }
         #leaderboard-list li:nth-child(1) { background: #ffd700; font-weight: bold; }
         #leaderboard-list li:nth-child(2) { background: #c0c0c0; }
         #leaderboard-list li:nth-child(3) { background: #cd7f32; }
-        .back-btn { padding: 15px 40px; font-size: 20px; border-radius: 10px; background: #28a745; color: white; border: none; margin-top: 20px; }
+        .back-btn { padding: 15px 40px; font-size: 20px; border-radius: 10px; background: #6c757d; color: white; border: none; margin-top: 20px; }
+        
+        #store-page #user-balance { font-size: 22px; font-weight: bold; margin-bottom: 20px; background: #fff; padding: 10px; border-radius: 8px; border: 2px solid #ddd; }
+        .store-item { flex-direction: column; align-items: stretch; }
+        .store-item-details { display: flex; justify-content: space-between; align-items: center; width: 100%;}
+        .store-item .item-name { text-align: right; flex-grow: 1; }
+        .store-item .item-price { font-weight: bold; margin: 0 15px; }
+        .buy-btn { background: #28a745; color: white; border: none; border-radius: 8px; padding: 10px 15px; font-size: 16px; }
+        .buy-btn:disabled { background: #999; }
     </style>
 </head>
 <body>
 
-<!-- Top Ad Banner Container -->
+<!-- Top Ad Banner -->
 <div id="ad-container">
-    <!-- BEGIN AADS AD UNIT 2428034 -->
     <div id="frame" style="width: 100%;margin: auto;position: relative; z-index: 99998;">
-              <iframe data-aa='2428034' src='//acceptable.a-ads.com/2428034/?size=Adaptive'
-                                style='border:0; padding:0; width:70%; height:auto; overflow:hidden;display: block;margin: auto'></iframe>
-            </div>
-    <!-- END AADS AD UNIT 2428034 -->
+        <iframe data-aa='2428034' src='//acceptable.a-ads.com/2428034/?size=Adaptive' style='border:0; padding:0; width:70%; height:auto; overflow:hidden;display: block;margin: auto'></iframe>
+    </div>
 </div>
 
-<!-- Page 1: Game -->
+<!-- Game Page -->
 <div id="game-container" class="page">
     <div id="info-bar">
         <div id="score">النقاط: 0</div>
@@ -154,6 +143,7 @@
             <div class="button-group">
                 <button id="start-btn" disabled>دخول / تسجيل</button>
                 <button id="view-leaderboard-btn">🏆 أفضل 10</button>
+                <button id="view-store-btn">🏪 المتجر</button>
             </div>
         </div>
         <div id="game-over-overlay" class="overlay">
@@ -168,26 +158,31 @@
     </div>
 </div>
 
-<!-- Page 2: Leaderboard -->
+<!-- Leaderboard Page -->
 <div id="leaderboard-page" class="page">
     <h1>🏆 قائمة أغنى 10 أبطال</h1>
     <ol id="leaderboard-list"><li>يتم التحميل...</li></ol>
-    <button class="back-btn">العب مرة أخرى</button>
+    <button class="back-btn">العودة للرئيسية</button>
 </div>
 
-<!-- START: New Ad Popup Container -->
+<!-- Store Page -->
+<div id="store-page" class="page">
+    <h1>🏪 المتجر</h1>
+    <div id="user-balance">رصيدك: 0</div>
+    <ul id="store-item-list"><li>جاري تحميل المنتجات...</li></ul>
+    <button class="back-btn">العودة للرئيسية</button>
+</div>
+
+
+<!-- Ad Popup -->
 <div id="ad-popup-overlay">
     <div id="ad-popup-content">
         <button id="close-ad-btn">×</button>
-        <!-- BEGIN AADS AD UNIT 2428035 -->
         <div id="frame" style="width: 100%;margin: auto;position: relative; z-index: 99998;">
-                  <iframe data-aa='2428035' src='//acceptable.a-ads.com/2428035/?size=Adaptive'
-                                    style='border:0; padding:0; width:70%; height:auto; overflow:hidden;display: block;margin: auto'></iframe>
-                </div>
-        <!-- END AADS AD UNIT 2428035 -->
+            <iframe data-aa='2428035' src='//acceptable.a-ads.com/2428035/?size=Adaptive' style='border:0; padding:0; width:70%; height:auto; overflow:hidden;display: block;margin: auto'></iframe>
+        </div>
     </div>
 </div>
-<!-- END: New Ad Popup Container -->
 
 <audio id="collect-sound" src="collect.mp3"></audio>
 <audio id="lose-sound" src="lose.mp3"></audio>
@@ -210,34 +205,44 @@
     const db = getFirestore(app);
     const usersRef = collection(db, "users");
 
+    // --- DOM Elements ---
+    const elements = {
+        pages: document.querySelectorAll('.page'),
+        gameContainer: document.getElementById("game-container"),
+        leaderboardPage: document.getElementById("leaderboard-page"),
+        storePage: document.getElementById("store-page"),
+        board: document.getElementById("game-board"),
+        player: document.getElementById("player"),
+        scoreEl: document.getElementById("score"),
+        timerEl: document.getElementById("timer"),
+        startScreen: document.getElementById("start-screen"),
+        gameOverOverlay: document.getElementById("game-over-overlay"),
+        finalScoreText: document.getElementById("final-score-text"),
+        leaderboardList: document.getElementById("leaderboard-list"),
+        collectSound: document.getElementById("collect-sound"),
+        loseSound: document.getElementById("lose-sound"),
+        backgroundMusic: document.getElementById("background-music"),
+        startBtn: document.getElementById("start-btn"),
+        pauseBtn: document.getElementById("pause-btn"),
+        viewLeaderboardBtn: document.getElementById("view-leaderboard-btn"),
+        viewStoreBtn: document.getElementById("view-store-btn"),
+        instaUser: document.getElementById("insta-user"),
+        privateIdInput: document.getElementById("private-id"),
+        validationError: document.getElementById("validation-error"),
+        backBtns: document.querySelectorAll('.back-btn'),
+        adPopupOverlay: document.getElementById("ad-popup-overlay"),
+        closeAdBtn: document.getElementById("close-ad-btn"),
+        userBalance: document.getElementById("user-balance"),
+        storeItemList: document.getElementById("store-item-list")
+    };
+    
+    // --- Game State & Config ---
+    const INITIAL_TIME = 600;
     const collectibleImages = ['item1.png', 'item2.png', 'item3.png', 'item4.png'];
+    const storeItems = {
+        'voucher_100': { name: 'قسيمة شراء', price: 100, description: 'استخدمها في العروض القادمة.' }
+    };
 
-    const pages = document.querySelectorAll('.page');
-    const gameContainer = document.getElementById("game-container");
-    const leaderboardPage = document.getElementById("leaderboard-page");
-    const board = document.getElementById("game-board");
-    const player = document.getElementById("player");
-    const scoreEl = document.getElementById("score");
-    const timerEl = document.getElementById("timer");
-    const startScreen = document.getElementById("start-screen");
-    const gameOverOverlay = document.getElementById("game-over-overlay");
-    const finalScoreText = document.getElementById("final-score-text");
-    const leaderboardList = document.getElementById("leaderboard-list");
-    const collectSound = document.getElementById("collect-sound");
-    const loseSound = document.getElementById("lose-sound");
-    const backgroundMusic = document.getElementById("background-music");
-    const startBtn = document.getElementById("start-btn");
-    const pauseBtn = document.getElementById("pause-btn");
-    const viewLeaderboardBtn = document.getElementById("view-leaderboard-btn");
-    const instaUser = document.getElementById("insta-user");
-    const privateIdInput = document.getElementById("private-id");
-    const validationError = document.getElementById("validation-error");
-    const backBtns = document.querySelectorAll('.back-btn');
-
-    const adPopupOverlay = document.getElementById("ad-popup-overlay");
-    const closeAdBtn = document.getElementById("close-ad-btn");
-
-    const INITIAL_TIME = 600; 
     let score = 0, time = 0, speed = 6, speedModifier = 1.0;
     let isGameOver = true, isPaused = false, frenzy = false;
     let move = { left: false, right: false };
@@ -245,59 +250,65 @@
     let fallingShapes = [];
     let currentUser = null;
 
+    // --- Page Navigation ---
     function showPage(pageToShow) {
-        pages.forEach(p => p.style.display = 'none');
+        elements.pages.forEach(p => p.style.display = 'none');
         pageToShow.style.display = 'flex';
     }
 
-    viewLeaderboardBtn.onclick = () => {
+    elements.viewLeaderboardBtn.onclick = () => {
         loadLeaderboard();
-        showPage(leaderboardPage);
+        showPage(elements.leaderboardPage);
     };
 
-    backBtns.forEach(btn => {
+    elements.viewStoreBtn.onclick = () => {
+        if (!currentUser) {
+            showWelcomeMessage("الرجاء تسجيل الدخول أولاً لزيارة المتجر.");
+            return;
+        }
+        renderStore();
+        showPage(elements.storePage);
+    };
+
+    elements.backBtns.forEach(btn => {
         btn.onclick = () => {
-            showPage(gameContainer);
-            startNewGameRound();
+            showPage(elements.gameContainer);
+            if (!currentUser) {
+                 startScreen.style.display = "flex";
+            }
         };
     });
 
-    closeAdBtn.onclick = () => {
-        adPopupOverlay.style.display = 'none';
-        gameOverOverlay.style.display = 'none';
+    elements.closeAdBtn.onclick = () => {
+        elements.adPopupOverlay.style.display = 'none';
+        elements.gameOverOverlay.style.display = 'none';
         loadLeaderboard();
-        showPage(leaderboardPage);
+        showPage(elements.leaderboardPage);
     };
 
+    // --- Authentication & Validation ---
     const instaRegex = /^@[a-zA-Z0-9_]{1,30}$/;
     const idRegex = /^[a-zA-Z0-9]{6,}$/;
 
     function validateInputs() {
-        const user = instaUser.value;
-        const privateId = privateIdInput.value;
+        const user = elements.instaUser.value;
+        const privateId = elements.privateIdInput.value;
         if (instaRegex.test(user) && idRegex.test(privateId)) {
-            startBtn.disabled = false;
-            validationError.textContent = '';
+            elements.startBtn.disabled = false;
+            elements.validationError.textContent = '';
         } else {
-            startBtn.disabled = true;
-            if (user && !instaRegex.test(user)) {
-                validationError.textContent = 'يوزر الانستغرام يجب أن يبدأ بـ @';
-            } else if (privateId && !idRegex.test(privateId)) {
-                validationError.textContent = 'الرمز يجب أن يتكون من 6 أحرف أو أرقام على الأقل';
-            } else {
-                validationError.textContent = '';
-            }
+            elements.startBtn.disabled = true;
         }
     }
-    instaUser.addEventListener('input', validateInputs);
-    privateIdInput.addEventListener('input', validateInputs);
+    elements.instaUser.addEventListener('input', validateInputs);
+    elements.privateIdInput.addEventListener('input', validateInputs);
 
-    startBtn.onclick = async () => {
-        const username = instaUser.value;
-        const privateId = privateIdInput.value;
-        startBtn.disabled = true;
-        startBtn.textContent = 'جاري التحقق...';
-        validationError.textContent = '';
+    elements.startBtn.onclick = async () => {
+        const username = elements.instaUser.value;
+        const privateId = elements.privateIdInput.value;
+        elements.startBtn.disabled = true;
+        elements.startBtn.textContent = 'جاري التحقق...';
+        elements.validationError.textContent = '';
 
         try {
             const userDocRef = doc(db, "users", username);
@@ -307,58 +318,51 @@
                 const userData = userDoc.data();
                 if (userData.privateId === privateId) {
                     currentUser = { username, ...userData };
-                    showWelcomeMessage(`أهلاً بعودتك ${username}! رصيدك الحالي: ${currentUser.balance || 0}`);
+                    showWelcomeMessage(`أهلاً بعودتك ${username}! رصيدك: ${currentUser.balance || 0}`);
                     loginSuccess();
                 } else {
-                    validationError.textContent = 'الرمز غير صحيح.';
+                    elements.validationError.textContent = 'الرمز غير صحيح.';
                 }
             } else {
                 const newUser = {
-                    username,
-                    privateId,
-                    highScore: 0,
-                    balance: 0, // New user starts with 0 balance
-                    createdAt: serverTimestamp()
+                    username, privateId, highScore: 0, balance: 0,
+                    inventory: {}, createdAt: serverTimestamp()
                 };
                 await setDoc(userDocRef, newUser);
                 currentUser = newUser;
-                showWelcomeMessage(`أهلاً بك ${username}! تم إنشاء حسابك. رصيدك: 0`);
+                showWelcomeMessage(`أهلاً بك ${username}! تم إنشاء حسابك.`);
                 loginSuccess();
             }
         } catch (error) {
             console.error("Auth Error: ", error);
-            validationError.textContent = 'حدث خطأ، حاول مرة أخرى.';
+            elements.validationError.textContent = 'حدث خطأ، حاول مرة أخرى.';
         } finally {
-            startBtn.disabled = false;
-            startBtn.textContent = 'دخول / تسجيل';
+            elements.startBtn.disabled = false;
+            elements.startBtn.textContent = 'دخول / تسجيل';
         }
     };
     
     function loginSuccess() {
         localStorage.setItem('savedMariomaUser', JSON.stringify({u: currentUser.username, p: currentUser.privateId}));
-        startScreen.style.display = "none";
+        elements.startScreen.style.display = "none";
         startNewGameRound();
     }
 
+    // --- Game Logic ---
     function startNewGameRound() {
-        score = 0;
-        time = INITIAL_TIME;
-        speedModifier = 1.0;
-        isGameOver = false;
-        isPaused = false;
+        score = 0; time = INITIAL_TIME; speedModifier = 1.0;
+        isGameOver = false; isPaused = false;
         fallingShapes.forEach(s => s.element.remove());
         fallingShapes = [];
-        scoreEl.textContent = `النقاط: 0`;
-        timerEl.classList.remove("time-warning");
-        player.style.display = "block";
-        gameOverOverlay.style.display = "none";
+        elements.scoreEl.textContent = `النقاط: 0`;
+        elements.timerEl.classList.remove("time-warning");
+        elements.player.style.display = "block";
+        elements.gameOverOverlay.style.display = "none";
         
-        clearInterval(timerInterval);
-        clearInterval(shapeInterval);
+        clearInterval(timerInterval); clearInterval(shapeInterval);
         cancelAnimationFrame(gameLoopId);
         
-        backgroundMusic.currentTime = 0;
-
+        elements.backgroundMusic.currentTime = 0;
         updateTimer();
         resumeGame();
         gameLoop();
@@ -366,31 +370,31 @@
     
     function pauseGame() {
         isPaused = true;
-        pauseBtn.textContent = '▶️';
-        clearInterval(timerInterval);
-        clearInterval(shapeInterval);
-        backgroundMusic.pause();
+        elements.pauseBtn.textContent = '▶️';
+        clearInterval(timerInterval); clearInterval(shapeInterval);
+        elements.backgroundMusic.pause();
     }
 
     function resumeGame() {
         if (isGameOver) return; 
         isPaused = false;
-        pauseBtn.textContent = '⏸';
+        elements.pauseBtn.textContent = '⏸';
         shapeInterval = setInterval(createShape, frenzy ? 450 : 900);
         timerInterval = setInterval(updateTimer, 1000);
-        backgroundMusic.play();
+        elements.backgroundMusic.play();
     }
-    pauseBtn.onclick = () => { isPaused ? resumeGame() : pauseGame(); };
+    elements.pauseBtn.onclick = () => { isPaused ? resumeGame() : pauseGame(); };
 
     function updateTimer() {
         const minutes = Math.floor(time / 60).toString().padStart(2, '0');
         const seconds = (time % 60).toString().padStart(2, '0');
-        timerEl.textContent = `الوقت: ${minutes}:${seconds}`;
+        elements.timerEl.textContent = `الوقت: ${minutes}:${seconds}`;
         const minutesPassed = Math.floor((INITIAL_TIME - time) / 60);
         speedModifier = 1.0 + (minutesPassed * 0.2);
+
         if (!frenzy && time > 0 && time <= (INITIAL_TIME / 2)) {
             frenzy = true;
-            timerEl.classList.add("time-warning");
+            elements.timerEl.classList.add("time-warning");
             clearInterval(shapeInterval);
             shapeInterval = setInterval(createShape, 450);
         }
@@ -404,17 +408,17 @@
         pauseGame(); 
         cancelAnimationFrame(gameLoopId);
         
-        saveScore(); // Save score and update balance
+        saveScore();
 
         if (status === 'loss') {
-            loseSound.play();
-            finalScoreText.textContent = `نقاطك: ${score}`;
-            gameOverOverlay.style.display = 'flex';
-            adPopupOverlay.style.display = 'flex';
+            elements.loseSound.play();
+            elements.finalScoreText.textContent = `نقاطك: ${score}`;
+            elements.gameOverOverlay.style.display = 'flex';
+            elements.adPopupOverlay.style.display = 'flex';
         } else {
              setTimeout(() => {
                 loadLeaderboard();
-                showPage(leaderboardPage);
+                showPage(elements.leaderboardPage);
             }, 500);
         }
     }
@@ -426,9 +430,7 @@
         if (!currentUser || score === 0) return;
 
         const userDocRef = doc(db, "users", currentUser.username);
-        const updates = {
-            balance: increment(score) // Atomically increment balance
-        };
+        const updates = { balance: increment(score) };
 
         if (score > (currentUser.highScore || 0)) {
             updates.highScore = score;
@@ -436,51 +438,110 @@
         }
 
         await updateDoc(userDocRef, updates);
-        
-        // Update local balance
         currentUser.balance = (currentUser.balance || 0) + score;
     }
 
+    // --- Leaderboard Logic ---
     async function loadLeaderboard() {
-        leaderboardList.innerHTML = "<li>يتم التحميل...</li>";
+        elements.leaderboardList.innerHTML = "<li>يتم التحميل...</li>";
         try {
-            // Query ordered by the new 'balance' field
             const q = query(usersRef, orderBy("balance", "desc"), limit(10));
             const snap = await getDocs(q);
             if (snap.empty) {
-                leaderboardList.innerHTML = "<li>لا يوجد لاعبون في القائمة بعد!</li>";
+                elements.leaderboardList.innerHTML = "<li>لا يوجد لاعبون في القائمة بعد!</li>";
                 return;
             }
-            leaderboardList.innerHTML = "";
+            elements.leaderboardList.innerHTML = "";
             snap.forEach(d => {
                 const data = d.data();
-                if(data.balance > 0) { // Show only users with a balance > 0
+                if(data.balance > 0) {
                     const li = document.createElement("li");
-                    // Display the balance instead of highScore
                     li.innerHTML = `<span class="name">${data.username}</span><strong class="score">${data.balance}</strong>`;
-                    leaderboardList.appendChild(li);
+                    elements.leaderboardList.appendChild(li);
                 }
             });
         } catch (error) {
             console.error("Error loading leaderboard: ", error);
-            leaderboardList.innerHTML = "<li>حدث خطأ في تحميل القائمة.</li>";
+            elements.leaderboardList.innerHTML = "<li>حدث خطأ في تحميل القائمة.</li>";
+        }
+    }
+
+    // --- Store Logic ---
+    function renderStore() {
+        elements.userBalance.textContent = `رصيدك: ${currentUser.balance || 0}`;
+        elements.storeItemList.innerHTML = '';
+
+        for (const itemId in storeItems) {
+            const item = storeItems[itemId];
+            const li = document.createElement('li');
+            li.className = 'store-item';
+            
+            const ownedCount = currentUser.inventory?.[itemId] || 0;
+
+            li.innerHTML = `
+                <div class="store-item-details">
+                    <span class="item-name">${item.name}</span>
+                    <span class="item-price">${item.price} نقطة</span>
+                    <button class="buy-btn" data-item-id="${itemId}">شراء</button>
+                </div>
+                <small>تمتلك: ${ownedCount}</small>
+            `;
+            elements.storeItemList.appendChild(li);
+        }
+
+        elements.storeItemList.querySelectorAll('.buy-btn').forEach(btn => {
+            btn.addEventListener('click', () => buyItem(btn.dataset.itemId));
+        });
+    }
+
+    async function buyItem(itemId) {
+        if (!currentUser) return;
+        const item = storeItems[itemId];
+        if (!item) return;
+
+        if ((currentUser.balance || 0) < item.price) {
+            showWelcomeMessage("رصيدك غير كافٍ لشراء هذا العنصر!");
+            return;
+        }
+
+        const userDocRef = doc(db, "users", currentUser.username);
+        try {
+            await updateDoc(userDocRef, {
+                balance: increment(-item.price),
+                [`inventory.${itemId}`]: increment(1)
+            });
+
+            // Update local user object
+            currentUser.balance -= item.price;
+            if (!currentUser.inventory) currentUser.inventory = {};
+            currentUser.inventory[itemId] = (currentUser.inventory[itemId] || 0) + 1;
+            
+            showWelcomeMessage(`تم شراء "${item.name}" بنجاح!`);
+            renderStore(); // Re-render store to show updated balance and inventory
+
+        } catch (error) {
+            console.error("Purchase Error: ", error);
+            showWelcomeMessage("حدث خطأ أثناء الشراء. حاول مرة أخرى.");
         }
     }
     
-    function gameLoop(){if(isGameOver||isPaused){gameLoopId=requestAnimationFrame(gameLoop);return}if(move.left)movePlayer(-speed);if(move.right)movePlayer(speed);for(let i=fallingShapes.length-1;i>=0;i--){const shapeData=fallingShapes[i];shapeData.y+=shapeData.fallSpeed;shapeData.element.style.top=shapeData.y+"px";if(collide(player,shapeData.element)){if(shapeData.element.classList.contains("circle")){score++;scoreEl.textContent=`النقاط: ${score}`;collectSound.currentTime=0;collectSound.play();player.classList.add("collected-animation");setTimeout(()=>player.classList.remove("collected-animation"),200);shapeData.element.remove();fallingShapes.splice(i,1)}else{loseGame()}}else if(shapeData.y>board.offsetHeight){shapeData.element.remove();fallingShapes.splice(i,1)}}gameLoopId=requestAnimationFrame(gameLoop)}
-    function movePlayer(dx){const x=player.offsetLeft+dx;const max=board.offsetWidth-player.offsetWidth;player.style.left=Math.max(0,Math.min(max,x))+"px"}
-    function createShape(){const s=document.createElement("div");if(Math.random()<0.7){s.className="shape circle";const randomImage=collectibleImages[Math.floor(Math.random()*collectibleImages.length)];s.style.backgroundImage=`url('${randomImage}')`}else{s.className="shape triangle"}s.style.left=Math.random()*(board.offsetWidth-40)+"px";board.appendChild(s);const baseFallSpeed=(Math.random()*3+2);const finalFallSpeed=baseFallSpeed*speedModifier*(frenzy?1.6:1);fallingShapes.push({element:s,y:-50,fallSpeed:finalFallSpeed})}
+    // --- Core Game Loop & Physics ---
+    function gameLoop(){if(isGameOver||isPaused){gameLoopId=requestAnimationFrame(gameLoop);return}if(move.left)movePlayer(-speed);if(move.right)movePlayer(speed);for(let i=fallingShapes.length-1;i>=0;i--){const shapeData=fallingShapes[i];shapeData.y+=shapeData.fallSpeed;shapeData.element.style.top=shapeData.y+"px";if(collide(elements.player,shapeData.element)){if(shapeData.element.classList.contains("circle")){score++;elements.scoreEl.textContent=`النقاط: ${score}`;elements.collectSound.currentTime=0;elements.collectSound.play();elements.player.classList.add("collected-animation");setTimeout(()=>elements.player.classList.remove("collected-animation"),200);shapeData.element.remove();fallingShapes.splice(i,1)}else{loseGame()}}else if(shapeData.y>elements.board.offsetHeight){shapeData.element.remove();fallingShapes.splice(i,1)}}gameLoopId=requestAnimationFrame(gameLoop)}
+    function movePlayer(dx){const x=elements.player.offsetLeft+dx;const max=elements.board.offsetWidth-elements.player.offsetWidth;elements.player.style.left=Math.max(0,Math.min(max,x))+"px"}
+    function createShape(){const s=document.createElement("div");if(Math.random()<0.7){s.className="shape circle";const randomImage=collectibleImages[Math.floor(Math.random()*collectibleImages.length)];s.style.backgroundImage=`url('${randomImage}')`}else{s.className="shape triangle"}s.style.left=Math.random()*(elements.board.offsetWidth-40)+"px";elements.board.appendChild(s);const baseFallSpeed=(Math.random()*3+2);const finalFallSpeed=baseFallSpeed*speedModifier*(frenzy?1.6:1);fallingShapes.push({element:s,y:-50,fallSpeed:finalFallSpeed})}
     function collide(a,b){const A=a.getBoundingClientRect();const B=b.getBoundingClientRect();return!(A.right<B.left||A.left>B.right||A.bottom<B.top||A.top>B.bottom)}
+    
+    // --- Event Listeners & Initializers ---
     document.addEventListener("keydown",e=>{if(e.key==="ArrowLeft")move.left=true;if(e.key==="ArrowRight")move.right=true});document.addEventListener("keyup",e=>{if(e.key==="ArrowLeft")move.left=false;if(e.key==="ArrowRight")move.right=false});document.querySelector("#left-btn").addEventListener("touchstart",e=>{e.preventDefault();move.left=true});document.querySelector("#right-btn").addEventListener("touchstart",e=>{e.preventDefault();move.right=true});document.addEventListener("touchend",()=>{move.left=false;move.right=false});document.addEventListener("mousedown",e=>{if(e.target.id==='left-btn')move.left=true;if(e.target.id==='right-btn')move.right=true});document.addEventListener("mouseup",()=>{move.left=false;move.right=false});
-    function showWelcomeMessage(message){const div=document.createElement('div');div.textContent=message;Object.assign(div.style,{position:'fixed',top:'20px',left:'50%',transform:'translateX(-50%)',padding:'10px 25px',background:'rgba(40,167,69,0.9)',color:'white',borderRadius:'10px',zIndex:'1000',fontSize:'18px',fontWeight:'bold',boxShadow:'0 4px 10px rgba(0,0,0,0.2)'});document.body.appendChild(div);setTimeout(()=>{div.style.transition='opacity 0.5s';div.style.opacity='0';setTimeout(()=>div.remove(),500)},3500)} // Increased timeout to read message
-    function loadSavedUser(){const savedUserStr=localStorage.getItem('savedMariomaUser');if(savedUserStr){try{const savedUser=JSON.parse(savedUserStr);instaUser.value=savedUser.u;privateIdInput.value=savedUser.p;validateInputs()}catch(e){localStorage.removeItem('savedMariomaUser')}}}
+    
+    function showWelcomeMessage(message){const div=document.createElement('div');div.textContent=message;Object.assign(div.style,{position:'fixed',top:'20px',left:'50%',transform:'translateX(-50%)',padding:'10px 25px',background:'rgba(40,167,69,0.9)',color:'white',borderRadius:'10px',zIndex:'1000',fontSize:'18px',fontWeight:'bold',boxShadow:'0 4px 10px rgba(0,0,0,0.2)'});document.body.appendChild(div);setTimeout(()=>{div.style.transition='opacity 0.5s';div.style.opacity='0';setTimeout(()=>div.remove(),500)},3500)}
+    function loadSavedUser(){const savedUserStr=localStorage.getItem('savedMariomaUser');if(savedUserStr){try{const savedUser=JSON.parse(savedUserStr);elements.instaUser.value=savedUser.u;elements.privateIdInput.value=savedUser.p;validateInputs()}catch(e){localStorage.removeItem('savedMariomaUser')}}}
 
-    // Initial setup
-    showPage(gameContainer);
+    showPage(elements.gameContainer);
     loadSavedUser();
 </script>
 
-<!-- Script to refresh top ad banner -->
+<!-- Ad Refresh Script -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const adIframe = document.querySelector("iframe[data-aa='2428034']");
