@@ -170,7 +170,7 @@
 
 <!-- Page 2: Leaderboard -->
 <div id="leaderboard-page" class="page">
-    <h1>🏆 قائمة أفضل 10 أبطال</h1>
+    <h1>🏆 قائمة أغنى 10 أبطال</h1>
     <ol id="leaderboard-list"><li>يتم التحميل...</li></ol>
     <button class="back-btn">العب مرة أخرى</button>
 </div>
@@ -195,7 +195,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-    import { getFirestore, collection, doc, getDoc, setDoc, query, orderBy, limit, getDocs, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, getDoc, setDoc, query, orderBy, limit, getDocs, serverTimestamp, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
     
     const firebaseConfig = {
       apiKey: "AIzaSyDsJ6fm4SFNLnRuHj-b80L0BweGVNkoiIM",
@@ -307,7 +307,7 @@
                 const userData = userDoc.data();
                 if (userData.privateId === privateId) {
                     currentUser = { username, ...userData };
-                    showWelcomeMessage(`أهلاً بعودتك ${username}`);
+                    showWelcomeMessage(`أهلاً بعودتك ${username}! رصيدك الحالي: ${currentUser.balance || 0}`);
                     loginSuccess();
                 } else {
                     validationError.textContent = 'الرمز غير صحيح.';
@@ -317,11 +317,12 @@
                     username,
                     privateId,
                     highScore: 0,
+                    balance: 0, // New user starts with 0 balance
                     createdAt: serverTimestamp()
                 };
                 await setDoc(userDocRef, newUser);
                 currentUser = newUser;
-                showWelcomeMessage(`أهلاً بك ${username}! تم إنشاء حسابك.`);
+                showWelcomeMessage(`أهلاً بك ${username}! تم إنشاء حسابك. رصيدك: 0`);
                 loginSuccess();
             }
         } catch (error) {
@@ -362,8 +363,7 @@
         resumeGame();
         gameLoop();
     }
-
-    // FIXED: The bug was here. Removed the "if (isGameOver) return;" check.
+    
     function pauseGame() {
         isPaused = true;
         pauseBtn.textContent = '▶️';
@@ -373,7 +373,7 @@
     }
 
     function resumeGame() {
-        if (isGameOver) return; // This check is correct and should stay
+        if (isGameOver) return; 
         isPaused = false;
         pauseBtn.textContent = '⏸';
         shapeInterval = setInterval(createShape, frenzy ? 450 : 900);
@@ -401,9 +401,11 @@
     function endGame(status) {
         if (isGameOver) return;
         isGameOver = true;
-        pauseGame(); // Now this function works correctly
+        pauseGame(); 
         cancelAnimationFrame(gameLoopId);
         
+        saveScore(); // Save score and update balance
+
         if (status === 'loss') {
             loseSound.play();
             finalScoreText.textContent = `نقاطك: ${score}`;
@@ -415,37 +417,47 @@
                 showPage(leaderboardPage);
             }, 500);
         }
-        
-        saveScore();
     }
 
     const loseGame = () => endGame('loss');
     const winGame = () => endGame('win');
 
     async function saveScore() {
-        if (!currentUser) return;
+        if (!currentUser || score === 0) return;
+
+        const userDocRef = doc(db, "users", currentUser.username);
+        const updates = {
+            balance: increment(score) // Atomically increment balance
+        };
+
         if (score > (currentUser.highScore || 0)) {
-            const userDocRef = doc(db, "users", currentUser.username);
-            await updateDoc(userDocRef, { highScore: score });
+            updates.highScore = score;
             currentUser.highScore = score;
         }
+
+        await updateDoc(userDocRef, updates);
+        
+        // Update local balance
+        currentUser.balance = (currentUser.balance || 0) + score;
     }
 
     async function loadLeaderboard() {
         leaderboardList.innerHTML = "<li>يتم التحميل...</li>";
         try {
-            const q = query(usersRef, orderBy("highScore", "desc"), limit(10));
+            // Query ordered by the new 'balance' field
+            const q = query(usersRef, orderBy("balance", "desc"), limit(10));
             const snap = await getDocs(q);
             if (snap.empty) {
-                leaderboardList.innerHTML = "<li>لا توجد نقاط بعد، كن أول الأبطال!</li>";
+                leaderboardList.innerHTML = "<li>لا يوجد لاعبون في القائمة بعد!</li>";
                 return;
             }
             leaderboardList.innerHTML = "";
             snap.forEach(d => {
                 const data = d.data();
-                if(data.highScore > 0) {
+                if(data.balance > 0) { // Show only users with a balance > 0
                     const li = document.createElement("li");
-                    li.innerHTML = `<span class="name">${data.username}</span><strong class="score">${data.highScore}</strong>`;
+                    // Display the balance instead of highScore
+                    li.innerHTML = `<span class="name">${data.username}</span><strong class="score">${data.balance}</strong>`;
                     leaderboardList.appendChild(li);
                 }
             });
@@ -460,7 +472,7 @@
     function createShape(){const s=document.createElement("div");if(Math.random()<0.7){s.className="shape circle";const randomImage=collectibleImages[Math.floor(Math.random()*collectibleImages.length)];s.style.backgroundImage=`url('${randomImage}')`}else{s.className="shape triangle"}s.style.left=Math.random()*(board.offsetWidth-40)+"px";board.appendChild(s);const baseFallSpeed=(Math.random()*3+2);const finalFallSpeed=baseFallSpeed*speedModifier*(frenzy?1.6:1);fallingShapes.push({element:s,y:-50,fallSpeed:finalFallSpeed})}
     function collide(a,b){const A=a.getBoundingClientRect();const B=b.getBoundingClientRect();return!(A.right<B.left||A.left>B.right||A.bottom<B.top||A.top>B.bottom)}
     document.addEventListener("keydown",e=>{if(e.key==="ArrowLeft")move.left=true;if(e.key==="ArrowRight")move.right=true});document.addEventListener("keyup",e=>{if(e.key==="ArrowLeft")move.left=false;if(e.key==="ArrowRight")move.right=false});document.querySelector("#left-btn").addEventListener("touchstart",e=>{e.preventDefault();move.left=true});document.querySelector("#right-btn").addEventListener("touchstart",e=>{e.preventDefault();move.right=true});document.addEventListener("touchend",()=>{move.left=false;move.right=false});document.addEventListener("mousedown",e=>{if(e.target.id==='left-btn')move.left=true;if(e.target.id==='right-btn')move.right=true});document.addEventListener("mouseup",()=>{move.left=false;move.right=false});
-    function showWelcomeMessage(message){const div=document.createElement('div');div.textContent=message;Object.assign(div.style,{position:'fixed',top:'20px',left:'50%',transform:'translateX(-50%)',padding:'10px 25px',background:'rgba(40,167,69,0.9)',color:'white',borderRadius:'10px',zIndex:'1000',fontSize:'18px',fontWeight:'bold',boxShadow:'0 4px 10px rgba(0,0,0,0.2)'});document.body.appendChild(div);setTimeout(()=>{div.style.transition='opacity 0.5s';div.style.opacity='0';setTimeout(()=>div.remove(),500)},2500)}
+    function showWelcomeMessage(message){const div=document.createElement('div');div.textContent=message;Object.assign(div.style,{position:'fixed',top:'20px',left:'50%',transform:'translateX(-50%)',padding:'10px 25px',background:'rgba(40,167,69,0.9)',color:'white',borderRadius:'10px',zIndex:'1000',fontSize:'18px',fontWeight:'bold',boxShadow:'0 4px 10px rgba(0,0,0,0.2)'});document.body.appendChild(div);setTimeout(()=>{div.style.transition='opacity 0.5s';div.style.opacity='0';setTimeout(()=>div.remove(),500)},3500)} // Increased timeout to read message
     function loadSavedUser(){const savedUserStr=localStorage.getItem('savedMariomaUser');if(savedUserStr){try{const savedUser=JSON.parse(savedUserStr);instaUser.value=savedUser.u;privateIdInput.value=savedUser.p;validateInputs()}catch(e){localStorage.removeItem('savedMariomaUser')}}}
 
     // Initial setup
