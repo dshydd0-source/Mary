@@ -18,17 +18,18 @@ const storeItems = {
         power_shield: { name: 'درع حماية (x1)', price: 150, description: 'يحميك من مثلث لمرة واحدة.' },
         power_slowmo: { name: 'إبطاء الوقت (x1)', price: 200, description: 'يبطئ سرعة سقوط الأشكال.' }
     },
+    // 2. تم تحديث هذا القسم
     vouchers: {
-        voucher_100: { name: 'قسيمة شراء حقيقية', price: 1000, description: 'تواصل معنا لاستلامها.' }
+        secret_gift_1: { name: 'اكتشف الهدية!', price: 1000, description: 'تواصل مع المطور لاستلام هديتك.' }
     }
 };
 
-// قاموس لترجمة أسماء الأقسام
+// 3. تم تغيير عنوان القسم هنا
 const categoryTitles = {
     dresses: "👗 فساتين جديدة",
     backgrounds: "🖼️ خلفيات لعب",
     powers: "⚡️ قوى مساعدة (Powers)",
-    vouchers: "🎟️ قسائم شراء حقيقية"
+    vouchers: "🎁 هدية سرية من مريم"
 };
 
 
@@ -48,7 +49,7 @@ export function initializeStore(config) {
 }
 
 /**
- * 2. تم تحديث دالة العرض لإنشاء الأقسام والعناوين
+ * دالة لعرض صفحة المتجر وتحديثها بالبيانات الحالية
  */
 export function renderStore() {
     const currentUser = getCurrentUser();
@@ -93,7 +94,7 @@ export function renderStore() {
 }
 
 /**
- * 3. دالة مساعدة للبحث عن المنتج في الهيكل الجديد
+ * دالة مساعدة للبحث عن المنتج في الهيكل الجديد
  */
 function findItem(itemId) {
     for (const categoryId in storeItems) {
