@@ -171,7 +171,7 @@
 <div id="leaderboard-page" class="page">
     <h1>🏆 قائمة أغنى 10 أبطال</h1>
     <ol id="leaderboard-list"><li>يتم التحميل...</li></ol>
-    <button class="back-btn" id="leaderboard-back-btn">العب مرة أخرى</button>
+    <button class="back-btn" id="leaderboard-back-btn">العودة للرئيسية</button>
 </div>
 
 <!-- Store Page -->
@@ -276,7 +276,8 @@
         elements.pages.forEach(p => p.style.display = 'none');
         pageToShow.style.display = 'flex';
     }
-
+    
+    // --- FIX: "Best 10" button now works without login ---
     elements.viewLeaderboardBtn.onclick = () => {
         loadLeaderboard();
         showPage(elements.leaderboardPage);
@@ -288,26 +289,30 @@
             return;
         }
         if (!isGameOver) {
-            pauseGame(); // Pause the game when opening the store
+            pauseGame();
         }
         renderStore();
         showPage(elements.storePage);
     };
 
-    // --- FIX: Specific logic for each back button ---
     elements.leaderboardBackBtn.onclick = () => {
         showPage(elements.gameContainer);
         if (currentUser) {
-            startNewGameRound(); // Always start a new game from leaderboard
+            // After losing, the user is on the leaderboard.
+            // When they click back, a new game should start.
+            elements.startScreen.style.display = "none";
+            startNewGameRound();
         } else {
+            // If they were never logged in, show start screen.
             elements.startScreen.style.display = "flex";
         }
     };
     
     elements.storeBackBtn.onclick = () => {
         showPage(elements.gameContainer);
+        // Only resume if the game was running before visiting the store.
         if (currentUser && !isGameOver) {
-            resumeGame(); // Resume game when coming back from store
+            resumeGame();
         }
     };
 
@@ -374,32 +379,24 @@
         elements.startScreen.style.display = "none";
         startNewGameRound();
     }
+    
+    // --- FIX: Refactored game flow logic ---
 
-    // --- Game Logic ---
-    function startNewGameRound() {
-        score = 0; time = INITIAL_TIME; speedModifier = 1.0;
-        isGameOver = false; isPaused = false;
-        fallingShapes.forEach(s => s.element.remove());
-        fallingShapes = [];
-        elements.scoreEl.textContent = `النقاط: 0`;
-        elements.timerEl.classList.remove("time-warning");
-        elements.player.style.display = "block";
-        elements.gameOverOverlay.style.display = "none";
-        
-        clearInterval(timerInterval); clearInterval(shapeInterval);
-        cancelAnimationFrame(gameLoopId);
-        
-        elements.backgroundMusic.currentTime = 0;
-        updateTimer();
-        resumeGame();
-        gameLoop();
+    // This function starts the core mechanics (intervals)
+    function runGameIntervals() {
+        if (!isPaused) {
+            shapeInterval = setInterval(createShape, frenzy ? 450 : 900);
+            timerInterval = setInterval(updateTimer, 1000);
+            elements.backgroundMusic.play().catch(e => console.log("Music play interrupted."));
+        }
     }
     
     function pauseGame() {
         if (isPaused) return;
         isPaused = true;
         elements.pauseBtn.textContent = '▶️';
-        clearInterval(timerInterval); clearInterval(shapeInterval);
+        clearInterval(timerInterval); 
+        clearInterval(shapeInterval);
         elements.backgroundMusic.pause();
     }
 
@@ -407,11 +404,41 @@
         if (isGameOver || !isPaused) return; 
         isPaused = false;
         elements.pauseBtn.textContent = '⏸';
-        shapeInterval = setInterval(createShape, frenzy ? 450 : 900);
-        timerInterval = setInterval(updateTimer, 1000);
-        elements.backgroundMusic.play();
+        runGameIntervals();
     }
-    elements.pauseBtn.onclick = () => { isPaused ? resumeGame() : pauseGame(); };
+
+    // This function resets everything for a new round
+    function startNewGameRound() {
+        score = 0; 
+        time = INITIAL_TIME; 
+        speedModifier = 1.0;
+        isGameOver = false;
+        isPaused = false;
+        frenzy = false;
+        
+        fallingShapes.forEach(s => s.element.remove());
+        fallingShapes = [];
+        
+        elements.scoreEl.textContent = `النقاط: 0`;
+        elements.timerEl.classList.remove("time-warning");
+        elements.player.style.display = "block";
+        elements.gameOverOverlay.style.display = "none";
+        elements.pauseBtn.textContent = '⏸';
+        
+        clearInterval(timerInterval); 
+        clearInterval(shapeInterval);
+        cancelAnimationFrame(gameLoopId);
+        
+        elements.backgroundMusic.currentTime = 0;
+        
+        updateTimer();
+        runGameIntervals();
+        gameLoop();
+    }
+    
+    elements.pauseBtn.onclick = () => { 
+        isPaused ? resumeGame() : pauseGame(); 
+    };
 
     function updateTimer() {
         const minutes = Math.floor(time / 60).toString().padStart(2, '0');
@@ -508,6 +535,7 @@
 
     showPage(elements.gameContainer);
     loadSavedUser();
+    gameLoop(); // Start the main animation loop once
 </script>
 
 <!-- Ad Refresh Script -->
