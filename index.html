@@ -109,8 +109,7 @@
         #leaderboard-page, #store-page { padding: 20px; box-sizing: border-box; text-align: center; overflow-y: auto; }
         #leaderboard-page h1, #store-page h1 { font-size: 28px; margin-bottom: 20px; }
         #leaderboard-list, #store-item-list { list-style: none; padding: 0; margin: 0; width: 100%; }
-        #leaderboard-list li, .store-item { display: flex; padding: 12px; margin-bottom: 8px; background: #e9e9e9; border-radius: 8px; font-size: 18px; }
-        #leaderboard-list li { align-items: center; }
+        #leaderboard-list li { display: flex; align-items: center; padding: 12px; margin-bottom: 8px; background: #e9e9e9; border-radius: 8px; font-size: 18px; }
         #leaderboard-list li .name { flex: 1; text-align: right; }
         #leaderboard-list li .score { flex: 0 0 80px; text-align: center; font-weight: bold; }
         #leaderboard-list li:nth-child(1) { background: #ffd700; font-weight: bold; }
@@ -120,11 +119,31 @@
         
         #store-page #user-balance { font-size: 22px; font-weight: bold; margin-bottom: 20px; background: #fff; padding: 10px; border-radius: 8px; border: 2px solid #ddd; }
         
-        .store-item { flex-direction: column; align-items: stretch; }
+        /* 1. New Store Styles */
+        .store-item {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            text-align: right;
+            padding: 12px; margin-bottom: 8px; background: #e9e9e9; border-radius: 8px; font-size: 18px;
+        }
+        .store-item-icon {
+            width: 50px;
+            height: 50px;
+            margin-left: 15px;
+            border-radius: 5px;
+            background: #fff;
+            object-fit: contain;
+        }
+        .store-item-main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
         .store-item-details { display: flex; justify-content: space-between; align-items: center; width: 100%;}
-        .store-item .item-name { text-align: right; flex-grow: 1; }
-        .store-item .item-price { font-weight: bold; margin: 0 15px; }
-        .store-item small { font-size: 14px; color: #555; text-align: right; margin-top: 4px; }
+        .store-item .item-name { flex-grow: 1; }
+        .store-item .item-price { font-weight: bold; margin: 0 15px; color: #333; }
+        .store-item small { font-size: 14px; color: #555; margin-top: 4px; }
         #store-item-list h2 {
             font-size: 22px;
             text-align: right;
@@ -137,8 +156,16 @@
         #store-item-list h2:first-of-type {
             margin-top: 0;
         }
-        .buy-btn { background: #28a745; color: white; border: none; border-radius: 8px; padding: 10px 15px; font-size: 16px; }
+        .buy-btn, .equip-btn { 
+            border: none; border-radius: 8px; 
+            padding: 10px 15px; font-size: 16px; 
+            min-width: 100px;
+        }
+        .buy-btn { background: #28a745; color: white; }
         .buy-btn:disabled { background: #999; }
+        .equip-btn { background: #007bff; color: white; }
+        .equip-btn.equipped { background: #6c757d; }
+
     </style>
 </head>
 <body>
@@ -216,7 +243,8 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, setDoc, query, orderBy, limit, getDocs, serverTimestamp, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
     
-    import { initializeStore, renderStore } from './store.js';
+    // 2. استيراد المنتجات ودوال المتجر
+    import { initializeStore, renderStore, storeItems } from './store.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyDsJ6fm4SFNLnRuHj-b80L0BweGVNkoiIM",
@@ -273,6 +301,18 @@
     let shapeInterval, timerInterval, gameLoopId;
     let fallingShapes = [];
     let currentUser = null;
+    
+    // 3. دالة جديدة لتطبيق المشتريات على اللعبة
+    function applyEquippedItems() {
+        if (!currentUser) return;
+        const equippedDressId = currentUser.equipped?.dress;
+        if (equippedDressId && storeItems.dresses[equippedDressId]) {
+            elements.player.src = storeItems.dresses[equippedDressId].game_file;
+        } else {
+            elements.player.src = 'character.png'; // الصورة الافتراضية
+        }
+        // يمكن إضافة منطق الخلفيات هنا مستقبلاً
+    }
 
     // --- Initialize Store Module ---
     initializeStore({
@@ -280,6 +320,7 @@
         getCurrentUser: () => currentUser,
         updateUser: (updatedUser) => { currentUser = updatedUser; },
         showWelcomeMessage: showWelcomeMessage,
+        applyEquippedItems: applyEquippedItems, // تمرير الدالة للمتجر
         elements: {
             userBalance: elements.userBalance,
             storeItemList: elements.storeItemList
@@ -366,9 +407,12 @@
                     elements.validationError.textContent = 'الرمز غير صحيح.';
                 }
             } else {
+                // 4. إضافة حقل التجهيز الافتراضي للمستخدم الجديد
                 const newUser = {
                     username, privateId, highScore: 0, balance: 0,
-                    inventory: {}, createdAt: serverTimestamp()
+                    inventory: {}, 
+                    equipped: { dress: 'default', background: 'default' },
+                    createdAt: serverTimestamp()
                 };
                 await setDoc(userDocRef, newUser);
                 currentUser = newUser;
@@ -386,6 +430,7 @@
     
     function loginSuccess() {
         localStorage.setItem('savedMariomaUser', JSON.stringify({u: currentUser.username, p: currentUser.privateId}));
+        applyEquippedItems(); // 5. تطبيق الملابس عند تسجيل الدخول
         elements.startScreen.style.display = "none";
         startNewGameRound();
     }
@@ -422,6 +467,8 @@
         isPaused = false;
         frenzy = false;
         
+        applyEquippedItems(); // 6. تطبيق الملابس عند بدء جولة جديدة
+
         fallingShapes.forEach(s => s.element.remove());
         fallingShapes = [];
         
@@ -439,7 +486,7 @@
         
         updateTimer();
         runGameIntervals();
-        gameLoop(); // THE FIX: Restart the animation loop
+        gameLoopId = requestAnimationFrame(gameLoop);
     }
     
     elements.pauseBtn.onclick = () => { 
@@ -512,7 +559,6 @@
         }
     }
 
-    // --- Leaderboard Logic ---
     async function loadLeaderboard() {
         elements.leaderboardList.innerHTML = "<li>يتم التحميل...</li>";
         try {
@@ -537,7 +583,6 @@
         }
     }
     
-    // --- Core Game Loop & Physics ---
     function gameLoop(){
         if(!isGameOver && !isPaused){
             if(move.left) movePlayer(-speed);
@@ -567,14 +612,13 @@
                 }
             }
         }
-        gameLoopId = requestAnimationFrame(gameLoop);
+        requestAnimationFrame(gameLoop);
     }
 
     function movePlayer(dx){const x=elements.player.offsetLeft+dx;const max=elements.board.offsetWidth-elements.player.offsetWidth;elements.player.style.left=Math.max(0,Math.min(max,x))+"px"}
     function createShape(){const s=document.createElement("div");if(Math.random()<0.7){s.className="shape circle";const randomImage=collectibleImages[Math.floor(Math.random()*collectibleImages.length)];s.style.backgroundImage=`url('${randomImage}')`}else{s.className="shape triangle"}s.style.left=Math.random()*(elements.board.offsetWidth-40)+"px";elements.board.appendChild(s);const baseFallSpeed=(Math.random()*3+2);const finalFallSpeed=baseFallSpeed*speedModifier*(frenzy?1.6:1);fallingShapes.push({element:s,y:-50,fallSpeed:finalFallSpeed})}
     function collide(a,b){const A=a.getBoundingClientRect();const B=b.getBoundingClientRect();return!(A.right<B.left||A.left>B.right||A.bottom<B.top||A.top>B.bottom)}
     
-    // --- Event Listeners & Initializers ---
     document.addEventListener("keydown",e=>{if(e.key==="ArrowLeft")move.left=true;if(e.key==="ArrowRight")move.right=true});
     document.addEventListener("keyup",e=>{if(e.key==="ArrowLeft")move.left=false;if(e.key==="ArrowRight")move.right=false});
     document.querySelector("#left-btn").addEventListener("touchstart",e=>{e.preventDefault();move.left=true});
