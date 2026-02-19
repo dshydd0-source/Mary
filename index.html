@@ -109,7 +109,8 @@
         #leaderboard-page, #store-page { padding: 20px; box-sizing: border-box; text-align: center; }
         #leaderboard-page h1, #store-page h1 { font-size: 28px; margin-bottom: 20px; }
         #leaderboard-list, #store-item-list { list-style: none; padding: 0; margin: 0; width: 100%; }
-        #leaderboard-list li, .store-item { display: flex; align-items: center; padding: 12px; margin-bottom: 8px; background: #e9e9e9; border-radius: 8px; font-size: 18px; }
+        #leaderboard-list li, .store-item { display: flex; padding: 12px; margin-bottom: 8px; background: #e9e9e9; border-radius: 8px; font-size: 18px; }
+        #leaderboard-list li { align-items: center; }
         #leaderboard-list li .name { flex: 1; text-align: right; }
         #leaderboard-list li .score { flex: 0 0 80px; text-align: center; font-weight: bold; }
         #leaderboard-list li:nth-child(1) { background: #ffd700; font-weight: bold; }
@@ -118,10 +119,25 @@
         .back-btn { padding: 15px 40px; font-size: 20px; border-radius: 10px; background: #6c757d; color: white; border: none; margin-top: 20px; }
         
         #store-page #user-balance { font-size: 22px; font-weight: bold; margin-bottom: 20px; background: #fff; padding: 10px; border-radius: 8px; border: 2px solid #ddd; }
+        
+        /* New Store Styles */
         .store-item { flex-direction: column; align-items: stretch; }
         .store-item-details { display: flex; justify-content: space-between; align-items: center; width: 100%;}
         .store-item .item-name { text-align: right; flex-grow: 1; }
         .store-item .item-price { font-weight: bold; margin: 0 15px; }
+        .store-item small { font-size: 14px; color: #555; text-align: right; margin-top: 4px; }
+        #store-item-list h2 {
+            font-size: 22px;
+            text-align: right;
+            color: #333;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 5px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        #store-item-list h2:first-of-type {
+            margin-top: 0;
+        }
         .buy-btn { background: #28a745; color: white; border: none; border-radius: 8px; padding: 10px 15px; font-size: 16px; }
         .buy-btn:disabled { background: #999; }
     </style>
@@ -171,14 +187,14 @@
 <div id="leaderboard-page" class="page">
     <h1>🏆 قائمة أغنى 10 أبطال</h1>
     <ol id="leaderboard-list"><li>يتم التحميل...</li></ol>
-    <button class="back-btn" id="leaderboard-back-btn">العودة للرئيسية</button>
+    <button class="back-btn" id="leaderboard-back-btn">العب مرة أخرى</button>
 </div>
 
 <!-- Store Page -->
 <div id="store-page" class="page">
     <h1>🏪 المتجر</h1>
     <div id="user-balance">رصيدك: 0</div>
-    <ul id="store-item-list"><li>جاري تحميل المنتجات...</li></ul>
+    <ul id="store-item-list"></ul>
     <button class="back-btn" id="store-back-btn">العودة للعبة</button>
 </div>
 
@@ -277,7 +293,6 @@
         pageToShow.style.display = 'flex';
     }
     
-    // --- FIX: "Best 10" button now works without login ---
     elements.viewLeaderboardBtn.onclick = () => {
         loadLeaderboard();
         showPage(elements.leaderboardPage);
@@ -298,19 +313,15 @@
     elements.leaderboardBackBtn.onclick = () => {
         showPage(elements.gameContainer);
         if (currentUser) {
-            // After losing, the user is on the leaderboard.
-            // When they click back, a new game should start.
             elements.startScreen.style.display = "none";
             startNewGameRound();
         } else {
-            // If they were never logged in, show start screen.
             elements.startScreen.style.display = "flex";
         }
     };
     
     elements.storeBackBtn.onclick = () => {
         showPage(elements.gameContainer);
-        // Only resume if the game was running before visiting the store.
         if (currentUser && !isGameOver) {
             resumeGame();
         }
@@ -380,9 +391,6 @@
         startNewGameRound();
     }
     
-    // --- FIX: Refactored game flow logic ---
-
-    // This function starts the core mechanics (intervals)
     function runGameIntervals() {
         if (!isPaused) {
             shapeInterval = setInterval(createShape, frenzy ? 450 : 900);
@@ -407,7 +415,6 @@
         runGameIntervals();
     }
 
-    // This function resets everything for a new round
     function startNewGameRound() {
         score = 0; 
         time = INITIAL_TIME; 
@@ -433,7 +440,7 @@
         
         updateTimer();
         runGameIntervals();
-        gameLoop();
+        if (!gameLoopId) gameLoop(); // Start the main animation loop only once
     }
     
     elements.pauseBtn.onclick = () => { 
@@ -522,7 +529,7 @@
     }
     
     // --- Core Game Loop & Physics ---
-    function gameLoop(){if(isGameOver||isPaused){gameLoopId=requestAnimationFrame(gameLoop);return}if(move.left)movePlayer(-speed);if(move.right)movePlayer(speed);for(let i=fallingShapes.length-1;i>=0;i--){const shapeData=fallingShapes[i];shapeData.y+=shapeData.fallSpeed;shapeData.element.style.top=shapeData.y+"px";if(collide(elements.player,shapeData.element)){if(shapeData.element.classList.contains("circle")){score++;elements.scoreEl.textContent=`النقاط: ${score}`;elements.collectSound.currentTime=0;elements.collectSound.play();elements.player.classList.add("collected-animation");setTimeout(()=>elements.player.classList.remove("collected-animation"),200);shapeData.element.remove();fallingShapes.splice(i,1)}else{loseGame()}}else if(shapeData.y>elements.board.offsetHeight){shapeData.element.remove();fallingShapes.splice(i,1)}}gameLoopId=requestAnimationFrame(gameLoop)}
+    function gameLoop(){if(!isGameOver && !isPaused){if(move.left)movePlayer(-speed);if(move.right)movePlayer(speed);for(let i=fallingShapes.length-1;i>=0;i--){const shapeData=fallingShapes[i];shapeData.y+=shapeData.fallSpeed;shapeData.element.style.top=shapeData.y+"px";if(collide(elements.player,shapeData.element)){if(shapeData.element.classList.contains("circle")){score++;elements.scoreEl.textContent=`النقاط: ${score}`;elements.collectSound.currentTime=0;elements.collectSound.play();elements.player.classList.add("collected-animation");setTimeout(()=>elements.player.classList.remove("collected-animation"),200);shapeData.element.remove();fallingShapes.splice(i,1)}else{loseGame()}}else if(shapeData.y>elements.board.offsetHeight){shapeData.element.remove();fallingShapes.splice(i,1)}}}gameLoopId=requestAnimationFrame(gameLoop)}
     function movePlayer(dx){const x=elements.player.offsetLeft+dx;const max=elements.board.offsetWidth-elements.player.offsetWidth;elements.player.style.left=Math.max(0,Math.min(max,x))+"px"}
     function createShape(){const s=document.createElement("div");if(Math.random()<0.7){s.className="shape circle";const randomImage=collectibleImages[Math.floor(Math.random()*collectibleImages.length)];s.style.backgroundImage=`url('${randomImage}')`}else{s.className="shape triangle"}s.style.left=Math.random()*(elements.board.offsetWidth-40)+"px";elements.board.appendChild(s);const baseFallSpeed=(Math.random()*3+2);const finalFallSpeed=baseFallSpeed*speedModifier*(frenzy?1.6:1);fallingShapes.push({element:s,y:-50,fallSpeed:finalFallSpeed})}
     function collide(a,b){const A=a.getBoundingClientRect();const B=b.getBoundingClientRect();return!(A.right<B.left||A.left>B.right||A.bottom<B.top||A.top>B.bottom)}
@@ -535,7 +542,7 @@
 
     showPage(elements.gameContainer);
     loadSavedUser();
-    gameLoop(); // Start the main animation loop once
+    gameLoop();
 </script>
 
 <!-- Ad Refresh Script -->
