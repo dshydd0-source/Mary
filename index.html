@@ -192,6 +192,9 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, setDoc, query, orderBy, limit, getDocs, serverTimestamp, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
     
+    // استيراد الدوال من ملف المتجر
+    import { initializeStore, renderStore } from './store.js';
+
     const firebaseConfig = {
       apiKey: "AIzaSyDsJ6fm4SFNLnRuHj-b80L0BweGVNkoiIM",
       authDomain: "game-21f55.firebaseapp.com",
@@ -239,9 +242,6 @@
     // --- Game State & Config ---
     const INITIAL_TIME = 600;
     const collectibleImages = ['item1.png', 'item2.png', 'item3.png', 'item4.png'];
-    const storeItems = {
-        'voucher_100': { name: 'قسيمة شراء', price: 100, description: 'استخدمها في العروض القادمة.' }
-    };
 
     let score = 0, time = 0, speed = 6, speedModifier = 1.0;
     let isGameOver = true, isPaused = false, frenzy = false;
@@ -249,6 +249,18 @@
     let shapeInterval, timerInterval, gameLoopId;
     let fallingShapes = [];
     let currentUser = null;
+
+    // --- تهيئة وحدة المتجر ---
+    initializeStore({
+        db, doc, updateDoc, increment,
+        getCurrentUser: () => currentUser,
+        updateUser: (updatedUser) => { currentUser = updatedUser; },
+        showWelcomeMessage: showWelcomeMessage,
+        elements: {
+            userBalance: elements.userBalance,
+            storeItemList: elements.storeItemList
+        }
+    });
 
     // --- Page Navigation ---
     function showPage(pageToShow) {
@@ -266,7 +278,7 @@
             showWelcomeMessage("الرجاء تسجيل الدخول أولاً لزيارة المتجر.");
             return;
         }
-        renderStore();
+        renderStore(); // استدعاء الدالة من وحدة المتجر
         showPage(elements.storePage);
     };
 
@@ -274,7 +286,7 @@
         btn.onclick = () => {
             showPage(elements.gameContainer);
             if (!currentUser) {
-                 startScreen.style.display = "flex";
+                 elements.startScreen.style.display = "flex";
             }
         };
     });
@@ -463,65 +475,6 @@
         } catch (error) {
             console.error("Error loading leaderboard: ", error);
             elements.leaderboardList.innerHTML = "<li>حدث خطأ في تحميل القائمة.</li>";
-        }
-    }
-
-    // --- Store Logic ---
-    function renderStore() {
-        elements.userBalance.textContent = `رصيدك: ${currentUser.balance || 0}`;
-        elements.storeItemList.innerHTML = '';
-
-        for (const itemId in storeItems) {
-            const item = storeItems[itemId];
-            const li = document.createElement('li');
-            li.className = 'store-item';
-            
-            const ownedCount = currentUser.inventory?.[itemId] || 0;
-
-            li.innerHTML = `
-                <div class="store-item-details">
-                    <span class="item-name">${item.name}</span>
-                    <span class="item-price">${item.price} نقطة</span>
-                    <button class="buy-btn" data-item-id="${itemId}">شراء</button>
-                </div>
-                <small>تمتلك: ${ownedCount}</small>
-            `;
-            elements.storeItemList.appendChild(li);
-        }
-
-        elements.storeItemList.querySelectorAll('.buy-btn').forEach(btn => {
-            btn.addEventListener('click', () => buyItem(btn.dataset.itemId));
-        });
-    }
-
-    async function buyItem(itemId) {
-        if (!currentUser) return;
-        const item = storeItems[itemId];
-        if (!item) return;
-
-        if ((currentUser.balance || 0) < item.price) {
-            showWelcomeMessage("رصيدك غير كافٍ لشراء هذا العنصر!");
-            return;
-        }
-
-        const userDocRef = doc(db, "users", currentUser.username);
-        try {
-            await updateDoc(userDocRef, {
-                balance: increment(-item.price),
-                [`inventory.${itemId}`]: increment(1)
-            });
-
-            // Update local user object
-            currentUser.balance -= item.price;
-            if (!currentUser.inventory) currentUser.inventory = {};
-            currentUser.inventory[itemId] = (currentUser.inventory[itemId] || 0) + 1;
-            
-            showWelcomeMessage(`تم شراء "${item.name}" بنجاح!`);
-            renderStore(); // Re-render store to show updated balance and inventory
-
-        } catch (error) {
-            console.error("Purchase Error: ", error);
-            showWelcomeMessage("حدث خطأ أثناء الشراء. حاول مرة أخرى.");
         }
     }
     
