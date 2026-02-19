@@ -43,7 +43,17 @@
 
         /* --- Game UI & Info Bar --- */
         #info-bar { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; font-size: 20px; background: #fff; }
-        #pause-btn { font-size: 24px; background: none; border: none; padding: 0 10px; margin-left: auto; }
+        /* Updated styles for buttons in info-bar */
+        #view-store-btn, #pause-btn { 
+            font-size: 24px; 
+            background: none; 
+            border: none; 
+            padding: 0 10px; 
+        }
+        #view-store-btn {
+            margin-left: auto; /* Pushes the buttons to the right */
+        }
+
         #game-board { position: relative; flex-grow: 1; background: lightpink; overflow: hidden; border-top: 3px solid #333; border-bottom: 3px solid #333; touch-action: none; }
         #player { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; display: none; object-fit: contain; }
 
@@ -131,6 +141,8 @@
     <div id="info-bar">
         <div id="score">النقاط: 0</div>
         <div id="timer">الوقت: 00:00</div>
+        <!-- Buttons moved to the game interface -->
+        <button id="view-store-btn">🏪</button>
         <button id="pause-btn">⏸</button>
     </div>
     <div id="game-board">
@@ -143,7 +155,7 @@
             <div class="button-group">
                 <button id="start-btn" disabled>دخول / تسجيل</button>
                 <button id="view-leaderboard-btn">🏆 أفضل 10</button>
-                <button id="view-store-btn">🏪 المتجر</button>
+                <!-- Store button is now in the info-bar -->
             </div>
         </div>
         <div id="game-over-overlay" class="overlay">
@@ -269,6 +281,10 @@
     }
 
     elements.viewLeaderboardBtn.onclick = () => {
+        if (!currentUser) {
+            showWelcomeMessage("الرجاء تسجيل الدخول أولاً.");
+            return;
+        }
         loadLeaderboard();
         showPage(elements.leaderboardPage);
     };
@@ -278,15 +294,19 @@
             showWelcomeMessage("الرجاء تسجيل الدخول أولاً لزيارة المتجر.");
             return;
         }
+        pauseGame(); // Pause the game when opening the store
         renderStore(); // استدعاء الدالة من وحدة المتجر
         showPage(elements.storePage);
     };
 
     elements.backBtns.forEach(btn => {
+        // When coming back from store/leaderboard, resume the game if it was running
         btn.onclick = () => {
             showPage(elements.gameContainer);
-            if (!currentUser) {
-                 elements.startScreen.style.display = "flex";
+            if (currentUser && !isGameOver) {
+                resumeGame();
+            } else if (!currentUser) {
+                elements.startScreen.style.display = "flex";
             }
         };
     });
