@@ -119,7 +119,6 @@
         
         #store-page #user-balance { font-size: 22px; font-weight: bold; margin-bottom: 20px; background: #fff; padding: 10px; border-radius: 8px; border: 2px solid #ddd; }
         
-        /* 1. New Store Styles */
         .store-item {
             display: flex;
             flex-direction: row;
@@ -243,7 +242,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, setDoc, query, orderBy, limit, getDocs, serverTimestamp, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
     
-    // 2. استيراد المنتجات ودوال المتجر
     import { initializeStore, renderStore, storeItems } from './store.js';
 
     const firebaseConfig = {
@@ -302,16 +300,14 @@
     let fallingShapes = [];
     let currentUser = null;
     
-    // 3. دالة جديدة لتطبيق المشتريات على اللعبة
     function applyEquippedItems() {
         if (!currentUser) return;
         const equippedDressId = currentUser.equipped?.dress;
         if (equippedDressId && storeItems.dresses[equippedDressId]) {
             elements.player.src = storeItems.dresses[equippedDressId].game_file;
         } else {
-            elements.player.src = 'character.png'; // الصورة الافتراضية
+            elements.player.src = 'character.png'; 
         }
-        // يمكن إضافة منطق الخلفيات هنا مستقبلاً
     }
 
     // --- Initialize Store Module ---
@@ -320,7 +316,7 @@
         getCurrentUser: () => currentUser,
         updateUser: (updatedUser) => { currentUser = updatedUser; },
         showWelcomeMessage: showWelcomeMessage,
-        applyEquippedItems: applyEquippedItems, // تمرير الدالة للمتجر
+        applyEquippedItems: applyEquippedItems,
         elements: {
             userBalance: elements.userBalance,
             storeItemList: elements.storeItemList
@@ -360,8 +356,10 @@
         }
     };
     
+    // --- THE FIX ---
     elements.storeBackBtn.onclick = () => {
         showPage(elements.gameContainer);
+        applyEquippedItems(); // Apply changes when returning to the game
         if (currentUser && !isGameOver) {
             resumeGame();
         }
@@ -407,7 +405,6 @@
                     elements.validationError.textContent = 'الرمز غير صحيح.';
                 }
             } else {
-                // 4. إضافة حقل التجهيز الافتراضي للمستخدم الجديد
                 const newUser = {
                     username, privateId, highScore: 0, balance: 0,
                     inventory: {}, 
@@ -430,7 +427,7 @@
     
     function loginSuccess() {
         localStorage.setItem('savedMariomaUser', JSON.stringify({u: currentUser.username, p: currentUser.privateId}));
-        applyEquippedItems(); // 5. تطبيق الملابس عند تسجيل الدخول
+        applyEquippedItems();
         elements.startScreen.style.display = "none";
         startNewGameRound();
     }
@@ -467,7 +464,7 @@
         isPaused = false;
         frenzy = false;
         
-        applyEquippedItems(); // 6. تطبيق الملابس عند بدء جولة جديدة
+        applyEquippedItems();
 
         fallingShapes.forEach(s => s.element.remove());
         fallingShapes = [];
