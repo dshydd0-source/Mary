@@ -302,16 +302,11 @@
     
     function applyEquippedItems() {
         if (!currentUser) return;
-        
-        console.log("Applying equipped items. Current equipped dress:", currentUser.equipped?.dress); // For debugging
-        
         const equippedDressId = currentUser.equipped?.dress;
         if (equippedDressId && storeItems.dresses[equippedDressId]) {
             elements.player.src = storeItems.dresses[equippedDressId].game_file;
-            console.log("Player source set to:", elements.player.src); // For debugging
         } else {
             elements.player.src = 'character.png'; 
-            console.log("Player source set to default: character.png"); // For debugging
         }
     }
 
@@ -361,7 +356,7 @@
         }
     };
     
-    // --- FIX: Apply items when returning from store ---
+    // --- THE FIX ---
     elements.storeBackBtn.onclick = () => {
         showPage(elements.gameContainer);
         applyEquippedItems(); // Apply changes when returning to the game
