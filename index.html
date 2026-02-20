@@ -176,8 +176,11 @@
 
 <!-- Top Ad Banner -->
 <div id="ad-container">
-    <div id="frame" style="width: 100%;margin: auto;position: relative; z-index: 99998;">
-        <iframe data-aa='2428034' src='//acceptable.a-ads.com/2428034/?size=Adaptive' style='border:0; padding:0; width:70%; height:auto; overflow:hidden;display: block;margin: auto'></iframe>
+    <div style="flex: 1; text-align: center; padding: 0 5px;">
+        <iframe data-aa="2428034" src="//acceptable.a-ads.com/2428034/?size=Adaptive" style="border:0; padding:0; width:100%; height:auto; overflow:hidden; display: block; margin: auto;"></iframe>
+    </div>
+    <div style="flex: 1; text-align: center; padding: 0 5px;">
+        <iframe data-aa="2428088" src="//acceptable.a-ads.com/2428088/?size=Adaptive" style="border:0; padding:0; width:100%; height:auto; overflow:hidden; display: block; margin: auto;"></iframe>
     </div>
 </div>
 
@@ -654,12 +657,20 @@
 <!-- Ad Refresh Script -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const adIframe = document.querySelector("iframe[data-aa='2428034']");
-        if (adIframe) {
-            const originalSrc = adIframe.src;
+        // Select only the ad iframes in the top container
+        const adIframes = document.querySelectorAll("#ad-container iframe[data-aa]");
+
+        if (adIframes.length > 0) {
+            // Store original sources to prevent appending multiple cache-busters
+            const originalSrcs = Array.from(adIframes).map(iframe => iframe.src);
+
             setInterval(function() {
-                adIframe.src = originalSrc + '&cb=' + Math.random();
-            }, 20000);
+                adIframes.forEach((iframe, index) => {
+                    // Re-construct the src with a new cache-busting parameter.
+                    // The original src likely contains a '?', so we can append with '&'.
+                    iframe.src = originalSrcs[index] + '&cb=' + Math.random();
+                });
+            }, 20000); // Refresh every 15 seconds as requested
         }
     });
 </script>
