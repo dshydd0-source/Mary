@@ -54,7 +54,18 @@
         }
 
         #game-board { position: relative; flex-grow: 1; background: lightpink; overflow: hidden; border-top: 3px solid #333; border-bottom: 3px solid #333; touch-action: none; }
-        #player { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; display: none; object-fit: contain; }
+        #player { 
+            position: absolute; 
+            bottom: 10px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 60px; 
+            height: 60px; 
+            display: none; 
+            object-fit: contain;
+            /* The transform property will be handled by the animation when active */
+        }
+
 
         /* --- Shapes & Animations --- */
         .shape { position: absolute; top: -50px; }
@@ -62,6 +73,18 @@
         .triangle { width: 40px; height: 40px; background: url('obstacle.png') center/contain no-repeat; }
         .collected-animation { animation: simple-collect 0.2s ease-out; }
         @keyframes simple-collect { 50% { opacity: 0.6; } }
+        
+        /* --- START OF NEW CODE --- */
+        /* Power-up pulse animation */
+        @keyframes pulse-powerup {
+            0% { transform: translateX(-50%) scale(1.0); }
+            50% { transform: translateX(-50%) scale(1.2); }
+            100% { transform: translateX(-50%) scale(1.0); }
+        }
+        .power-active {
+            animation: pulse-powerup 0.5s infinite;
+        }
+        /* --- END OF NEW CODE --- */
 
         /* --- Overlays --- */
         .overlay {
@@ -89,7 +112,7 @@
         }
         #close-ad-btn {
             position: absolute; top: 5px; left: 10px; 
-            background: transparent; border: none; font-size: 28px;
+            background: transparent; border: none; font-size: 28px; 
             font-weight: bold; color: #555; cursor: pointer;
             padding: 0 5px; margin: 0;
         }
@@ -156,7 +179,6 @@
             margin-top: 0;
         }
 
-        /* --- BLOCK TO UPDATE --- */
         .buy-btn, .equip-btn, .unequip-btn { 
             border: none; border-radius: 8px; 
             padding: 10px 15px; font-size: 16px; 
@@ -167,9 +189,7 @@
         .buy-btn:disabled { background: #999; cursor: not-allowed; }
         .equip-btn { background: #007bff; color: white; }
         .equip-btn.equipped { background: #6c757d; cursor: default; }
-        .unequip-btn { background: #dc3545; color: white; } /* Red for unequip */
-        /* --- END BLOCK TO UPDATE --- */
-
+        .unequip-btn { background: #dc3545; color: white; }
     </style>
 </head>
 <body>
@@ -233,7 +253,6 @@
     <div id="ad-popup-content">
         <button id="close-ad-btn">×</button>
         <div id="frame" style="width: 100%; margin: auto; position: relative; z-index: 99998; display: flex; flex-direction: column; gap: 5px;">
-            <!-- Ads are stacked vertically due to flex-direction: column -->
             <iframe data-aa='2428035' src='//acceptable.a-ads.com/2428035/?size=Adaptive' style='border:0; padding:0; width:100%; height:auto; overflow:hidden; display: block; margin: auto;'></iframe>
             <iframe data-aa='2428095' src='//acceptable.a-ads.com/2428095/?size=Adaptive' style='border:0; padding:0; width:100%; height:auto; overflow:hidden; display: block; margin: auto;'></iframe>
         </div>
@@ -306,6 +325,55 @@
     let fallingShapes = [];
     let currentUser = null;
     
+    // --- START OF NEW CODE: POWER-UP MANAGEMENT ---
+    let activePowerEndTimes = {
+        double_points: 0,
+        no_triangles: 0,
+        attract_circles: 0
+    };
+
+    function activatePower(powerId) {
+        if (isGameOver || !storeItems.powers[powerId]) return;
+
+        const powerKey = powerId.replace('power_', '');
+        const duration = 30; // 30 seconds
+        
+        // Set the end time relative to the game's countdown timer
+        // If a power is already active, this will extend its duration.
+        const currentEndTime = time > activePowerEndTimes[powerKey] ? activePowerEndTimes[powerKey] : time;
+        activePowerEndTimes[powerKey] = currentEndTime - duration;
+
+        elements.player.classList.add("power-active");
+        showWelcomeMessage(`تم تفعيل قوة "${storeItems.powers[powerId].name}"!`);
+    }
+
+    function checkActivePowers() {
+        let isAnyPowerActive = false;
+        const now = time; 
+
+        for (const powerKey in activePowerEndTimes) {
+            const endTime = activePowerEndTimes[powerKey];
+
+            if (now > endTime) {
+                isAnyPowerActive = true;
+            } 
+            // Check if the power was active but has now expired
+            else if (endTime > 0 && now <= endTime) {
+                activePowerEndTimes[powerKey] = 0; // Reset the power
+                const fullPowerId = `power_${powerKey}`;
+                if (storeItems.powers[fullPowerId]) {
+                    showWelcomeMessage(`انتهى مفعول قوة "${storeItems.powers[fullPowerId].name}".`);
+                }
+            }
+        }
+
+        if (!isAnyPowerActive) {
+            elements.player.classList.remove("power-active");
+        }
+    }
+    // --- END OF NEW CODE ---
+
+
     function applyEquippedItems() {
         if (!currentUser) return;
 
@@ -325,7 +393,6 @@
             elements.board.style.backgroundSize = 'cover';
             elements.board.style.backgroundPosition = 'center';
         } else {
-            // العودة إلى اللون الافتراضي عند إلغاء التجهيز
             elements.board.style.background = 'lightpink';
         }
     }
@@ -338,6 +405,7 @@
         updateUser: (updatedUser) => { currentUser = updatedUser; },
         showWelcomeMessage: showWelcomeMessage,
         applyEquippedItems: applyEquippedItems,
+        activatePower: activatePower, // Pass the activation function to the store
         elements: {
             userBalance: elements.userBalance,
             storeItemList: elements.storeItemList
@@ -484,6 +552,11 @@
         isPaused = false;
         frenzy = false;
         
+        // --- START OF NEW CODE: Reset powers ---
+        activePowerEndTimes = { double_points: 0, no_triangles: 0, attract_circles: 0 };
+        elements.player.classList.remove("power-active");
+        // --- END OF NEW CODE ---
+        
         applyEquippedItems();
 
         fallingShapes.forEach(s => s.element.remove());
@@ -522,6 +595,11 @@
             clearInterval(shapeInterval);
             shapeInterval = setInterval(createShape, 450);
         }
+        
+        // --- START OF NEW CODE: Check power status every second ---
+        checkActivePowers();
+        // --- END OF NEW CODE ---
+
         if (time < 0) {
              winGame();
              return;
@@ -536,6 +614,10 @@
         clearInterval(timerInterval); 
         clearInterval(shapeInterval);
         elements.backgroundMusic.pause();
+        
+        // --- START OF NEW CODE: Reset powers on game end ---
+        elements.player.classList.remove("power-active");
+        // --- END OF NEW CODE ---
         
         saveScore();
 
@@ -598,25 +680,50 @@
         }
     }
     
-    // --- THE FIX: Simplified Game Loop ---
     function gameLoop(){
-        if(!isGameOver && !isPaused){
+        if (!isGameOver && !isPaused){
             if(move.left) movePlayer(-speed);
             if(move.right) movePlayer(speed);
+
+            // --- START OF NEW CODE: Check for active powers ---
+            const isDoublePointsActive = time > activePowerEndTimes.double_points;
+            const isAttractCirclesActive = time > activePowerEndTimes.attract_circles;
+            const playerRect = elements.player.getBoundingClientRect();
+            // --- END OF NEW CODE ---
 
             for(let i=fallingShapes.length-1; i>=0; i--){
                 const shapeData=fallingShapes[i];
                 shapeData.y += shapeData.fallSpeed;
                 shapeData.element.style.top = shapeData.y + "px";
+                
+                // --- START OF NEW CODE: Attraction Power Logic ---
+                if (isAttractCirclesActive && shapeData.element.classList.contains("circle")) {
+                    const playerCenterX = playerRect.left + playerRect.width / 2;
+                    const shapeRect = shapeData.element.getBoundingClientRect();
+                    const shapeCenterX = shapeRect.left + shapeRect.width / 2;
+
+                    const attractionStrength = 4; // pixels per frame
+                    if (shapeCenterX < playerCenterX) {
+                        shapeData.element.style.left = (shapeData.element.offsetLeft + attractionStrength) + "px";
+                    } else if (shapeCenterX > playerCenterX) {
+                        shapeData.element.style.left = (shapeData.element.offsetLeft - attractionStrength) + "px";
+                    }
+                }
+                // --- END OF NEW CODE ---
+
 
                 if(collide(elements.player, shapeData.element)){
                     if(shapeData.element.classList.contains("circle")){
-                        score++;
+                        
+                        // --- START OF NEW CODE: Double Points Logic ---
+                        score += isDoublePointsActive ? 2 : 1;
+                        // --- END OF NEW CODE ---
+
                         elements.scoreEl.textContent=`النقاط: ${score}`;
                         elements.collectSound.currentTime=0;
                         elements.collectSound.play();
                         elements.player.classList.add("collected-animation");
-                        setTimeout(()=>elements.player.classList.remove("collected-animation"),200);
+                        setTimeout(()=>elements.player.classList.remove("collected-animation"), 200);
                         shapeData.element.remove();
                         fallingShapes.splice(i,1)
                     } else {
@@ -634,9 +741,13 @@
     function movePlayer(dx){const x=elements.player.offsetLeft+dx;const max=elements.board.offsetWidth-elements.player.offsetWidth;elements.player.style.left=Math.max(0,Math.min(max,x))+"px"}
     
     function createShape(){
+        // --- START OF NEW CODE: No Triangles Logic ---
+        const isNoTrianglesActive = time > activePowerEndTimes.no_triangles;
+        // --- END OF NEW CODE ---
+
         const s=document.createElement("div");
-        if(Math.random()<0.7){
-            s.className="shape circle";
+        if(Math.random()<0.7 || isNoTrianglesActive){ // Always create a circle if power is active
+            s.className="shape circle ";
             const randomImage=collectibleImages[Math.floor(Math.random()*collectibleImages.length)];
             s.style.backgroundImage=`url('${randomImage}')`
         } else {
@@ -664,7 +775,7 @@
 
     showPage(elements.gameContainer);
     loadSavedUser();
-    gameLoop(); // Start the single game loop once.
+    gameLoop();
 </script>
 
 </body>
