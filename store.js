@@ -38,6 +38,14 @@ const categoryTitles = {
     vouchers: "🎁 هدية سرية من مريم"
 };
 
+// -- START OF FIX --
+// Added a mapping from the plural category ID to the singular equipment type.
+const categoryToEquipType = {
+    dresses: 'dress',
+    backgrounds: 'background'
+};
+// -- END OF FIX --
+
 export function initializeStore(config) {
     db = config.db;
     doc = config.doc;
@@ -96,7 +104,10 @@ export function renderStore() {
             const dataAttrs = `data-item-id="${itemId}" data-category="${categoryId}"`;
 
             if (item.game_file) {
-                const equipType = categoryId.slice(0, -1);
+                // -- START OF FIX --
+                // Replaced slice with the new mapping to get the correct equipment type.
+                const equipType = categoryToEquipType[categoryId];
+                // -- END OF FIX --
                 const isEquipped = currentUser.equipped?.[equipType] === itemId;
 
                 if (isOwned) {
@@ -182,20 +193,29 @@ async function equipItem(itemId, category) {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
 
+    // -- START OF FIX --
+    // Replaced slice with the new mapping to get the correct equipment type.
+    const equipType = categoryToEquipType[category];
+    if (!equipType) {
+        console.error("Equip Error: Unknown category", category);
+        return;
+    }
+    // -- END OF FIX --
+
     const userDocRef = doc(db, "users", currentUser.username);
     try {
-        const keyToUpdate = `equipped.${category.slice(0, -1)}`;
+        const keyToUpdate = `equipped.${equipType}`; // Used equipType
         await updateDoc(userDocRef, {
             [keyToUpdate]: itemId
         });
 
         const updatedUser = { ...currentUser };
         if (!updatedUser.equipped) updatedUser.equipped = {};
-        updatedUser.equipped[category.slice(0, -1)] = itemId;
+        updatedUser.equipped[equipType] = itemId; // Used equipType
         updateUser(updatedUser);
 
         showWelcomeMessage("تم تجهيز العنصر بنجاح!");
-        applyEquippedItems(updatedUser); // <-- تم التعديل هنا
+        applyEquippedItems(updatedUser);
         renderStore();
 
     } catch (error) {
@@ -208,20 +228,29 @@ async function unequipItem(itemId, category) {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
 
+    // -- START OF FIX --
+    // Replaced slice with the new mapping to get the correct equipment type.
+    const equipType = categoryToEquipType[category];
+    if (!equipType) {
+        console.error("Unequip Error: Unknown category", category);
+        return;
+    }
+    // -- END OF FIX --
+
     const userDocRef = doc(db, "users", currentUser.username);
     try {
-        const keyToUpdate = `equipped.${category.slice(0, -1)}`;
+        const keyToUpdate = `equipped.${equipType}`; // Used equipType
         await updateDoc(userDocRef, {
             [keyToUpdate]: 'default'
         });
 
         const updatedUser = { ...currentUser };
         if (!updatedUser.equipped) updatedUser.equipped = {};
-        updatedUser.equipped[category.slice(0, -1)] = 'default';
+        updatedUser.equipped[equipType] = 'default'; // Used equipType
         updateUser(updatedUser);
 
         showWelcomeMessage("تم إلغاء تجهيز العنصر.");
-        applyEquippedItems(updatedUser); // <-- تم التعديل هنا
+        applyEquippedItems(updatedUser);
         renderStore();
 
     } catch (error) {
@@ -229,4 +258,3 @@ async function unequipItem(itemId, category) {
         showWelcomeMessage("خطأ في إلغاء تجهيز العنصر.");
     }
 }
-
