@@ -4,12 +4,11 @@ let db, doc, updateDoc, increment;
 let getCurrentUser, updateUser, showWelcomeMessage, applyEquippedItems;
 let userBalanceEl, storeItemListEl;
 
-// 1. تمت إضافة الفستان الأبيض
 export const storeItems = {
     dresses: {
-        dress_sky: { 
-            name: 'فستان سمائي', 
-            price: 2000, 
+        dress_sky: {
+            name: 'فستان سمائي',
+            price: 2000,
             store_icon: 'dress_sky.png',
             game_file: 'character_sky.png'
         },
@@ -50,6 +49,30 @@ export function initializeStore(config) {
     applyEquippedItems = config.applyEquippedItems;
     userBalanceEl = config.elements.userBalance;
     storeItemListEl = config.elements.storeItemList;
+
+    // --- START: NEW DELEGATED EVENT LISTENER ---
+    // This single listener is attached to the parent list.
+    // It will handle clicks on any button inside it.
+    if (storeItemListEl) {
+        storeItemListEl.addEventListener('click', (event) => {
+            const button = event.target.closest('button');
+            if (!button || button.disabled) {
+                return; // Ignore clicks that aren't on an enabled button
+            }
+
+            const itemId = button.dataset.itemId;
+            const category = button.dataset.category;
+
+            if (button.classList.contains('buy-btn')) {
+                buyItem(itemId);
+            } else if (button.classList.contains('equip-btn')) {
+                equipItem(itemId, category);
+            } else if (button.classList.contains('unequip-btn')) {
+                unequipItem(itemId, category);
+            }
+        });
+    }
+    // --- END: NEW DELEGATED EVENT LISTENER ---
 }
 
 export function renderStore() {
@@ -57,11 +80,11 @@ export function renderStore() {
     if (!currentUser) return;
 
     userBalanceEl.textContent = `رصيدك: ${currentUser.balance || 0} يمي`;
-    storeItemListEl.innerHTML = '';
+    storeItemListEl.innerHTML = ''; // Clear the list before re-rendering
 
     for (const categoryId in storeItems) {
         const category = storeItems[categoryId];
-        
+
         const categoryTitle = document.createElement('h2');
         categoryTitle.textContent = categoryTitles[categoryId] || categoryId;
         storeItemListEl.appendChild(categoryTitle);
@@ -70,33 +93,34 @@ export function renderStore() {
             const item = category[itemId];
             const li = document.createElement('li');
             li.className = 'store-item';
-            
+
             const isOwned = currentUser.inventory?.[itemId] > 0;
-            
+
             let buttonHtml;
+            const dataAttrs = `data-item-id="${itemId}" data-category="${categoryId}"`;
 
             // Logic for equippable items (e.g., dresses)
             if (item.game_file) {
-                const equipType = categoryId.slice(0, -1); // 'dresses' -> 'dress'
+                const equipType = categoryId.slice(0, -1);
                 const isEquipped = currentUser.equipped?.[equipType] === itemId;
 
                 if (isOwned) {
                     if (isEquipped) {
-                        buttonHtml = `<button class="unequip-btn" data-item-id="${itemId}" data-category="${categoryId}">إلغاء التجهيز</button>`;
+                        buttonHtml = `<button class="unequip-btn" ${dataAttrs}>إلغاء التجهيز</button>`;
                     } else {
-                        buttonHtml = `<button class="equip-btn" data-item-id="${itemId}" data-category="${categoryId}">تجهيز</button>`;
+                        buttonHtml = `<button class="equip-btn" ${dataAttrs}>تجهيز</button>`;
                     }
                 } else {
-                    buttonHtml = `<button class="buy-btn" data-item-id="${itemId}" ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
+                    buttonHtml = `<button class="buy-btn" ${dataAttrs} ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
                 }
-            } 
-            // Logic for non-equippable items (e.g., powers, vouchers)
+            }
+            // Logic for non-equippable items
             else {
                  if (isOwned) {
                      const count = currentUser.inventory[itemId];
                      buttonHtml = `<button class="equip-btn equipped" disabled>تم الشراء (x${count})</button>`;
                  } else {
-                    buttonHtml = `<button class="buy-btn" data-item-id="${itemId}" ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
+                    buttonHtml = `<button class="buy-btn" ${dataAttrs} ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
                  }
             }
 
@@ -105,7 +129,7 @@ export function renderStore() {
                 <div class="store-item-main">
                     <div class="store-item-details">
                         <span class="item-name">${item.name}</span>
-                        <span class="item-price">${item.price} يمي</span> 
+                        <span class="item-price">${item.price} يمي</span>
                         ${buttonHtml}
                     </div>
                     <small>${item.description || ''}</small>
@@ -114,26 +138,14 @@ export function renderStore() {
             storeItemListEl.appendChild(li);
         }
     }
-
-    // Attach event listeners
-    storeItemListEl.querySelectorAll('.buy-btn').forEach(btn => {
-        btn.addEventListener('click', () => buyItem(btn.dataset.itemId));
-    });
-    
-    storeItemListEl.querySelectorAll('.equip-btn:not(:disabled)').forEach(btn => {
-        btn.addEventListener('click', () => equipItem(btn.dataset.itemId, btn.dataset.category));
-    });
-
-    // Add listener for the new unequip button
-    storeItemListEl.querySelectorAll('.unequip-btn').forEach(btn => {
-        btn.addEventListener('click', () => unequipItem(btn.dataset.itemId, btn.dataset.category));
-    });
+    // --- REMOVED ---
+    // The old querySelectorAll loops for attaching listeners have been removed from here.
 }
 
 function findItem(itemId) {
     for (const categoryId in storeItems) {
         if (storeItems[categoryId][itemId]) {
-            return storeItems[categoryId][itemId];
+            return { item: storeItems[categoryId][itemId], categoryId: categoryId };
         }
     }
     return null;
@@ -142,9 +154,10 @@ function findItem(itemId) {
 async function buyItem(itemId) {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
-    
-    const item = findItem(itemId);
-    if (!item) return;
+
+    const result = findItem(itemId);
+    if (!result) return;
+    const { item } = result;
 
     if ((currentUser.balance || 0) < item.price) {
         showWelcomeMessage("رصيدك غير كافٍ!");
@@ -162,8 +175,8 @@ async function buyItem(itemId) {
         updatedUser.balance -= item.price;
         if (!updatedUser.inventory) updatedUser.inventory = {};
         updatedUser.inventory[itemId] = (updatedUser.inventory[itemId] || 0) + 1;
-        updateUser(updatedUser); 
-        
+        updateUser(updatedUser);
+
         showWelcomeMessage(`تم شراء "${item.name}" بنجاح!`);
         renderStore();
 
@@ -205,9 +218,9 @@ async function unequipItem(itemId, category) {
 
     const userDocRef = doc(db, "users", currentUser.username);
     try {
-        const keyToUpdate = `equipped.${category.slice(0, -1)}`; // e.g., 'equipped.dress'
+        const keyToUpdate = `equipped.${category.slice(0, -1)}`;
         await updateDoc(userDocRef, {
-            [keyToUpdate]: 'default' // Set back to default
+            [keyToUpdate]: 'default'
         });
 
         const updatedUser = { ...currentUser };
@@ -216,8 +229,8 @@ async function unequipItem(itemId, category) {
         updateUser(updatedUser);
 
         showWelcomeMessage("تم إلغاء تجهيز العنصر.");
-        applyEquippedItems(); // apply the default character
-        renderStore(); // re-render the store to show 'Equip' button again
+        applyEquippedItems();
+        renderStore();
 
     } catch (error) {
         console.error("Unequip Error:", error);
