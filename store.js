@@ -18,13 +18,13 @@ export const storeItems = {
         bg_temp3: { name: 'خلفية مملكة العلكة', price: 1000, file: 'bg_temp3.jpg' }
     },
     powers: {
-        power_shield: { name: 'درع حماية (x1)', price: 150, description: 'يحميك من مثلث لمرة واحدة.' },
-        power_double_points: { name: 'نقاط مضاعفة', price: 65, description: 'تجعل الدوائر تزيد النقاط *2 لمدة 30 ثانية.' },
-        power_no_triangles: { name: 'حجب المثلثات', price: 60, description: 'يحجب نزول المثلثاث لمدة 30 ثانية.' },
-        power_attract_circles: { name: 'جاذب الدوائر', price: 50, description: 'تجعل الدوائر تنجذب للاعب لمدة 30 ثانية.' }
+        power_shield: { name: 'درع حماية (x1)', price: 150, description: 'يحميك من الممية لمرة واحدة.' },
+        power_double_points: { name: 'نقاط مضاعفة', price: 65, description: 'تجعل الاكل تزيد النقاط *2 لمدة 30 ثانية.' },
+        power_no_triangles: { name: 'حجب المميات', price: 60, description: 'يحجب نزول المميات لمدة 30 ثانية.' },
+        power_attract_circles: { name: 'مغناطيس الاكل', price: 50, description: 'تجعل الأكل ينجذب للاعب لمدة 30 ثانية.' }
     },
     vouchers: {
-        secret_gift_1: { name: 'اكتشف الهدية!', price: 1000, description: 'تواصل مع المطور لاستلام هديتك.' }
+        secret_gift_1: { name: 'اكتشف الهدية!', price: 100000, description: 'تواصل مع حساب مريومة على الانستغرام لاستلام هديتك.' }
     }
 };
 
