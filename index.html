@@ -139,7 +139,7 @@
             display: flex;
             flex-direction: column;
         }
-        .store-item-details { display: flex; justify-content: space-between; align-items: center; width: 100%;}
+        .store-item-details { display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 5px;}
         .store-item .item-name { flex-grow: 1; }
         .store-item .item-price { font-weight: bold; margin: 0 15px; color: #333; }
         .store-item small { font-size: 14px; color: #555; margin-top: 4px; }
@@ -168,6 +168,29 @@
         .equip-btn { background: #007bff; color: white; }
         .equip-btn.equipped { background: #6c757d; cursor: default; }
         .unequip-btn { background: #dc3545; color: white; } /* Red for unequip */
+        
+        /* NEW STYLES FOR POWERS */
+        .activate-btn {
+            background: #ffc107; /* Yellow */
+            color: #333;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            min-width: 80px;
+            cursor: pointer;
+        }
+        .power-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* Space between count and button */
+        }
+        .item-count {
+            font-size: 15px;
+            font-weight: normal;
+            color: #333;
+        }
         /* --- END BLOCK TO UPDATE --- */
 
     </style>
@@ -306,6 +329,60 @@
     let fallingShapes = [];
     let currentUser = null;
     
+    // NEW: State for active powers and their timers
+    let activePowers = {
+        shield: 0,
+        doublePoints: false,
+        noTriangles: false,
+        attractCircles: false
+    };
+    let powerTimeouts = [];
+
+    // --- Power Activation Logic ---
+
+    // NEW: Clears all active power timers. Called when a game ends/restarts.
+    function clearAllPowerTimeouts() {
+        powerTimeouts.forEach(timeoutId => clearTimeout(timeoutId));
+        powerTimeouts = [];
+    }
+
+    // NEW: This function is called from the store to handle a power's effect.
+    function activatePower(itemId) {
+        const power = storeItems.powers[itemId];
+        if (!power) return;
+
+        switch (itemId) {
+            case 'power_shield':
+                activePowers.shield++;
+                showWelcomeMessage(`تم تجهيز درع الحماية!`);
+                break;
+            case 'power_double_points':
+                activePowers.doublePoints = true;
+                const timeout1 = setTimeout(() => {
+                    activePowers.doublePoints = false;
+                    if (!isGameOver) showWelcomeMessage('انتهت قوة النقاط المضاعفة.');
+                }, 30000); // 30 seconds
+                powerTimeouts.push(timeout1);
+                break;
+            case 'power_no_triangles':
+                activePowers.noTriangles = true;
+                const timeout2 = setTimeout(() => {
+                    activePowers.noTriangles = false;
+                    if (!isGameOver) showWelcomeMessage('انتهت قوة حجب المثلثات.');
+                }, 30000); // 30 seconds
+                powerTimeouts.push(timeout2);
+                break;
+            case 'power_attract_circles':
+                activePowers.attractCircles = true;
+                const timeout3 = setTimeout(() => {
+                    activePowers.attractCircles = false;
+                    if (!isGameOver) showWelcomeMessage('انتهت قوة جاذب الدوائر.');
+                }, 30000); // 30 seconds
+                powerTimeouts.push(timeout3);
+                break;
+        }
+    }
+
     function applyEquippedItems() {
         if (!currentUser) return;
 
@@ -338,6 +415,7 @@
         updateUser: (updatedUser) => { currentUser = updatedUser; },
         showWelcomeMessage: showWelcomeMessage,
         applyEquippedItems: applyEquippedItems,
+        activatePower: activatePower, // MODIFIED: Pass the activation function to the store
         elements: {
             userBalance: elements.userBalance,
             storeItemList: elements.storeItemList
@@ -477,6 +555,15 @@
     }
 
     function startNewGameRound() {
+        // NEW: Reset all active powers and timers for the new round
+        clearAllPowerTimeouts();
+        activePowers = {
+            shield: 0,
+            doublePoints: false,
+            noTriangles: false,
+            attractCircles: false
+        };
+        
         score = 0; 
         time = INITIAL_TIME; 
         speedModifier = 1.0;
@@ -533,6 +620,7 @@
         if (isGameOver) return;
         isGameOver = true;
         
+        clearAllPowerTimeouts(); // NEW: Clear timers on game end
         clearInterval(timerInterval); 
         clearInterval(shapeInterval);
         elements.backgroundMusic.pause();
@@ -598,7 +686,7 @@
         }
     }
     
-    // --- THE FIX: Simplified Game Loop ---
+    // --- MODIFIED Game Loop with Power Logic ---
     function gameLoop(){
         if(!isGameOver && !isPaused){
             if(move.left) movePlayer(-speed);
@@ -607,11 +695,28 @@
             for(let i=fallingShapes.length-1; i>=0; i--){
                 const shapeData=fallingShapes[i];
                 shapeData.y += shapeData.fallSpeed;
+
+                // NEW: Attract circles power logic
+                if (activePowers.attractCircles && shapeData.element.classList.contains("circle")) {
+                    const playerRect = elements.player.getBoundingClientRect();
+                    const circleRect = shapeData.element.getBoundingClientRect();
+                    const playerCenterX = playerRect.left + (playerRect.width / 2);
+                    const circleCenterX = circleRect.left + (circleRect.width / 2);
+                    const dx = playerCenterX - circleCenterX;
+                    
+                    if (Math.abs(dx) > 1) { // Move towards player if not already aligned
+                       let currentLeft = parseFloat(shapeData.element.style.left);
+                       shapeData.element.style.left = (currentLeft + Math.sign(dx) * 4) + "px"; // Attraction speed = 4
+                    }
+                }
+
                 shapeData.element.style.top = shapeData.y + "px";
 
+                // MODIFIED: Collision logic with Shield and Double Points
                 if(collide(elements.player, shapeData.element)){
                     if(shapeData.element.classList.contains("circle")){
-                        score++;
+                        const pointsToAdd = activePowers.doublePoints ? 2 : 1;
+                        score += pointsToAdd;
                         elements.scoreEl.textContent=`النقاط: ${score}`;
                         elements.collectSound.currentTime=0;
                         elements.collectSound.play();
@@ -619,8 +724,16 @@
                         setTimeout(()=>elements.player.classList.remove("collected-animation"),200);
                         shapeData.element.remove();
                         fallingShapes.splice(i,1)
-                    } else {
-                        loseGame()
+                    } else { // It's a triangle
+                        if (activePowers.shield > 0) { // Check for shield
+                            activePowers.shield--; // Consume shield
+                            showWelcomeMessage('تم استخدام الدرع!');
+                            // Remove triangle and continue game
+                            shapeData.element.remove();
+                            fallingShapes.splice(i, 1);
+                        } else {
+                            loseGame(); // No shield, lose game
+                        }
                     }
                 } else if(shapeData.y > elements.board.offsetHeight){
                     shapeData.element.remove();
@@ -633,9 +746,11 @@
 
     function movePlayer(dx){const x=elements.player.offsetLeft+dx;const max=elements.board.offsetWidth-elements.player.offsetWidth;elements.player.style.left=Math.max(0,Math.min(max,x))+"px"}
     
+    // MODIFIED: Shape creation with No Triangles power
     function createShape(){
         const s=document.createElement("div");
-        if(Math.random()<0.7){
+        // If 'noTriangles' is active, always create a circle. Otherwise, normal probability.
+        if(activePowers.noTriangles || Math.random()<0.7){
             s.className="shape circle";
             const randomImage=collectibleImages[Math.floor(Math.random()*collectibleImages.length)];
             s.style.backgroundImage=`url('${randomImage}')`
