@@ -195,7 +195,7 @@ async function equipItem(itemId, category) {
         updateUser(updatedUser);
 
         showWelcomeMessage("تم تجهيز العنصر بنجاح!");
-        // applyEquippedItems(); // <-- THIS LINE IS REMOVED
+        applyEquippedItems(); // <-- تم تفعيل هذا السطر
         renderStore();
 
     } catch (error) {
@@ -221,7 +221,7 @@ async function unequipItem(itemId, category) {
         updateUser(updatedUser);
 
         showWelcomeMessage("تم إلغاء تجهيز العنصر.");
-        // applyEquippedItems(); // <-- THIS LINE IS REMOVED
+        applyEquippedItems(); // <-- تم تفعيل هذا السطر
         renderStore();
 
     } catch (error) {
