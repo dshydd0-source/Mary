@@ -4,14 +4,20 @@ let db, doc, updateDoc, increment;
 let getCurrentUser, updateUser, showWelcomeMessage, applyEquippedItems;
 let userBalanceEl, storeItemListEl;
 
-// 1. تمت إضافة بيانات الفستان الجديد مع تحديد الصور
+// 1. تمت إضافة الفستان الأبيض
 export const storeItems = {
     dresses: {
         dress_sky: { 
             name: 'فستان سمائي', 
             price: 2000, 
-            store_icon: 'dress_sky.png', // صورة الأيقونة في المتجر
-            game_file: 'character_sky.png' // ملف الشخصية الجديد للعبة
+            store_icon: 'dress_sky.png',
+            game_file: 'character_sky.png'
+        },
+        dress_white: {
+            name: 'فستان أبيض',
+            price: 3000,
+            store_icon: 'dress_white.png',
+            game_file: 'character_white.png'
         },
         dress_pink: { name: 'فستان وردي', price: 250, game_file: 'character_pink.png' },
     },
@@ -41,7 +47,7 @@ export function initializeStore(config) {
     getCurrentUser = config.getCurrentUser;
     updateUser = config.updateUser;
     showWelcomeMessage = config.showWelcomeMessage;
-    applyEquippedItems = config.applyEquippedItems; // استيراد دالة التجهيز
+    applyEquippedItems = config.applyEquippedItems;
     userBalanceEl = config.elements.userBalance;
     storeItemListEl = config.elements.storeItemList;
 }
@@ -50,7 +56,7 @@ export function renderStore() {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
 
-    userBalanceEl.textContent = `رصيدك: ${currentUser.balance || 0} يمي`; // 2. تغيير العملة
+    userBalanceEl.textContent = `رصيدك: ${currentUser.balance || 0} يمي`;
     storeItemListEl.innerHTML = '';
 
     for (const categoryId in storeItems) {
@@ -146,14 +152,13 @@ async function buyItem(itemId) {
     }
 }
 
-// 3. دالة جديدة لتجهيز العنصر
 async function equipItem(itemId, category) {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
 
     const userDocRef = doc(db, "users", currentUser.username);
     try {
-        const keyToUpdate = `equipped.${category.slice(0, -1)}`; // 'dresses' -> 'dress'
+        const keyToUpdate = `equipped.${category.slice(0, -1)}`;
         await updateDoc(userDocRef, {
             [keyToUpdate]: itemId
         });
@@ -164,8 +169,8 @@ async function equipItem(itemId, category) {
         updateUser(updatedUser);
 
         showWelcomeMessage("تم تجهيز العنصر بنجاح!");
-        applyEquippedItems(); // تطبيق التغيير فوراً على اللعبة
-        renderStore(); // إعادة عرض المتجر لتحديث الأزرار
+        applyEquippedItems();
+        renderStore();
 
     } catch (error) {
         console.error("Equip Error:", error);
