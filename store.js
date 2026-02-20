@@ -48,13 +48,11 @@ const categoryTitles = {
     vouchers: "🎁 هدية سرية من مريم"
 };
 
-// -- START OF FIX --
 // Added a mapping from the plural category ID to the singular equipment type.
 const categoryToEquipType = {
     dresses: 'dress',
     backgrounds: 'background'
 };
-// -- END OF FIX --
 
 export function initializeStore(config) {
     db = config.db;
@@ -109,15 +107,13 @@ export function renderStore() {
             li.className = 'store-item';
 
             const isOwned = currentUser.inventory?.[itemId] > 0;
-
             let buttonHtml;
             const dataAttrs = `data-item-id="${itemId}" data-category="${categoryId}"`;
 
-            if (item.game_file) {
-                // -- START OF FIX --
-                // Replaced slice with the new mapping to get the correct equipment type.
+            // -- START OF MODIFICATION --
+            // Check if the item's category is equippable (dresses, backgrounds).
+            if (categoryToEquipType[categoryId]) {
                 const equipType = categoryToEquipType[categoryId];
-                // -- END OF FIX --
                 const isEquipped = currentUser.equipped?.[equipType] === itemId;
 
                 if (isOwned) {
@@ -129,8 +125,7 @@ export function renderStore() {
                 } else {
                     buttonHtml = `<button class="buy-btn" ${dataAttrs} ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
                 }
-            }
-            else {
+            } else { // For non-equippable items like powers and vouchers.
                  if (isOwned) {
                      const count = currentUser.inventory[itemId];
                      buttonHtml = `<button class="equip-btn equipped" disabled>تم الشراء (x${count})</button>`;
@@ -139,8 +134,11 @@ export function renderStore() {
                  }
             }
 
+            // Use item.file as a fallback for the store icon.
+            const iconSrc = item.store_icon || item.file;
+
             li.innerHTML = `
-                ${item.store_icon ? `<img src="${item.store_icon}" class="store-item-icon">` : ''}
+                ${iconSrc ? `<img src="${iconSrc}" class="store-item-icon">` : ''}
                 <div class="store-item-main">
                     <div class="store-item-details">
                         <span class="item-name">${item.name}</span>
@@ -150,6 +148,7 @@ export function renderStore() {
                     <small>${item.description || ''}</small>
                 </div>
             `;
+            // -- END OF MODIFICATION --
             storeItemListEl.appendChild(li);
         }
     }
@@ -203,25 +202,22 @@ async function equipItem(itemId, category) {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
 
-    // -- START OF FIX --
-    // Replaced slice with the new mapping to get the correct equipment type.
     const equipType = categoryToEquipType[category];
     if (!equipType) {
         console.error("Equip Error: Unknown category", category);
         return;
     }
-    // -- END OF FIX --
 
     const userDocRef = doc(db, "users", currentUser.username);
     try {
-        const keyToUpdate = `equipped.${equipType}`; // Used equipType
+        const keyToUpdate = `equipped.${equipType}`;
         await updateDoc(userDocRef, {
             [keyToUpdate]: itemId
         });
 
         const updatedUser = { ...currentUser };
         if (!updatedUser.equipped) updatedUser.equipped = {};
-        updatedUser.equipped[equipType] = itemId; // Used equipType
+        updatedUser.equipped[equipType] = itemId;
         updateUser(updatedUser);
 
         showWelcomeMessage("تم تجهيز العنصر بنجاح!");
@@ -238,25 +234,22 @@ async function unequipItem(itemId, category) {
     const currentUser = getCurrentUser();
     if (!currentUser) return;
 
-    // -- START OF FIX --
-    // Replaced slice with the new mapping to get the correct equipment type.
     const equipType = categoryToEquipType[category];
     if (!equipType) {
         console.error("Unequip Error: Unknown category", category);
         return;
     }
-    // -- END OF FIX --
 
     const userDocRef = doc(db, "users", currentUser.username);
     try {
-        const keyToUpdate = `equipped.${equipType}`; // Used equipType
+        const keyToUpdate = `equipped.${equipType}`;
         await updateDoc(userDocRef, {
             [keyToUpdate]: 'default'
         });
 
         const updatedUser = { ...currentUser };
         if (!updatedUser.equipped) updatedUser.equipped = {};
-        updatedUser.equipped[equipType] = 'default'; // Used equipType
+        updatedUser.equipped[equipType] = 'default';
         updateUser(updatedUser);
 
         showWelcomeMessage("تم إلغاء تجهيز العنصر.");
