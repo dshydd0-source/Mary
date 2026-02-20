@@ -72,17 +72,32 @@ export function renderStore() {
             li.className = 'store-item';
             
             const isOwned = currentUser.inventory?.[itemId] > 0;
-            const isEquipped = currentUser.equipped?.dress === itemId;
-
+            
             let buttonHtml;
-            if (isOwned) {
-                if (isEquipped) {
-                    buttonHtml = `<button class="equip-btn equipped" disabled>مجهز حاليًا</button>`;
+
+            // Logic for equippable items (e.g., dresses)
+            if (item.game_file) {
+                const equipType = categoryId.slice(0, -1); // 'dresses' -> 'dress'
+                const isEquipped = currentUser.equipped?.[equipType] === itemId;
+
+                if (isOwned) {
+                    if (isEquipped) {
+                        buttonHtml = `<button class="unequip-btn" data-item-id="${itemId}" data-category="${categoryId}">إلغاء التجهيز</button>`;
+                    } else {
+                        buttonHtml = `<button class="equip-btn" data-item-id="${itemId}" data-category="${categoryId}">تجهيز</button>`;
+                    }
                 } else {
-                    buttonHtml = `<button class="equip-btn" data-item-id="${itemId}" data-category="dresses">تجهيز</button>`;
+                    buttonHtml = `<button class="buy-btn" data-item-id="${itemId}" ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
                 }
-            } else {
-                buttonHtml = `<button class="buy-btn" data-item-id="${itemId}" ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
+            } 
+            // Logic for non-equippable items (e.g., powers, vouchers)
+            else {
+                 if (isOwned) {
+                     const count = currentUser.inventory[itemId];
+                     buttonHtml = `<button class="equip-btn equipped" disabled>تم الشراء (x${count})</button>`;
+                 } else {
+                    buttonHtml = `<button class="buy-btn" data-item-id="${itemId}" ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
+                 }
             }
 
             li.innerHTML = `
@@ -100,12 +115,18 @@ export function renderStore() {
         }
     }
 
+    // Attach event listeners
     storeItemListEl.querySelectorAll('.buy-btn').forEach(btn => {
         btn.addEventListener('click', () => buyItem(btn.dataset.itemId));
     });
     
     storeItemListEl.querySelectorAll('.equip-btn:not(:disabled)').forEach(btn => {
         btn.addEventListener('click', () => equipItem(btn.dataset.itemId, btn.dataset.category));
+    });
+
+    // Add listener for the new unequip button
+    storeItemListEl.querySelectorAll('.unequip-btn').forEach(btn => {
+        btn.addEventListener('click', () => unequipItem(btn.dataset.itemId, btn.dataset.category));
     });
 }
 
@@ -175,5 +196,31 @@ async function equipItem(itemId, category) {
     } catch (error) {
         console.error("Equip Error:", error);
         showWelcomeMessage("خطأ في تجهيز العنصر.");
+    }
+}
+
+async function unequipItem(itemId, category) {
+    const currentUser = getCurrentUser();
+    if (!currentUser) return;
+
+    const userDocRef = doc(db, "users", currentUser.username);
+    try {
+        const keyToUpdate = `equipped.${category.slice(0, -1)}`; // e.g., 'equipped.dress'
+        await updateDoc(userDocRef, {
+            [keyToUpdate]: 'default' // Set back to default
+        });
+
+        const updatedUser = { ...currentUser };
+        if (!updatedUser.equipped) updatedUser.equipped = {};
+        updatedUser.equipped[category.slice(0, -1)] = 'default';
+        updateUser(updatedUser);
+
+        showWelcomeMessage("تم إلغاء تجهيز العنصر.");
+        applyEquippedItems(); // apply the default character
+        renderStore(); // re-render the store to show 'Equip' button again
+
+    } catch (error) {
+        console.error("Unequip Error:", error);
+        showWelcomeMessage("خطأ في إلغاء تجهيز العنصر.");
     }
 }
