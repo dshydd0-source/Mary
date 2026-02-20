@@ -169,7 +169,7 @@ async function equipItem(itemId, category) {
         updateUser(updatedUser);
 
         showWelcomeMessage("تم تجهيز العنصر بنجاح!");
-        applyEquippedItems();
+        applyEquippedItems(); // تطبيق التغيير فوراً
         renderStore();
 
     } catch (error) {
