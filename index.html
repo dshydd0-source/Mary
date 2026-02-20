@@ -270,14 +270,14 @@
     import { getFirestore, collection, doc, getDoc, setDoc, query, orderBy, limit, getDocs, serverTimestamp, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
     
     // =========================================================================================
-    // START: CODE FROM FORMER store.js
+    // START: STORE LOGIC
     // =========================================================================================
     
     const storeItems = {
         dresses: {
             dress_sky: { name: 'فستان سمائي', price: 2000, store_icon: 'dress_sky.png', game_file: 'character_sky.png' },
             dress_white: { name: 'فستان أبيض', price: 3000, store_icon: 'dress_white.png', game_file: 'character_white.png' },
-            
+            dress_pink: { name: 'فستان وردي', price: 250, game_file: 'character_pink.png' },
         },
         backgrounds: { bg_forest: { name: 'خلفية الغابة', price: 500, file: 'bg_forest.jpg' } },
         powers: { power_shield: { name: 'درع حماية (x1)', price: 150, description: 'يحميك من مثلث لمرة واحدة.' } },
@@ -416,7 +416,7 @@
     }
 
     // =========================================================================================
-    // END: CODE FROM FORMER store.js
+    // END: STORE LOGIC
     // =========================================================================================
 
     const firebaseConfig = {
@@ -473,29 +473,19 @@
     let move = { left: false, right: false };
     let shapeInterval, timerInterval;
     let fallingShapes = [];
-    let currentUser = null; // This is the single source of truth now
+    let currentUser = null; 
     
-    // --- THIS IS THE MOST IMPORTANT FUNCTION TO CHECK ---
     function applyEquippedItems() {
-        console.log("1. 'applyEquippedItems' has been called.");
-        if (!currentUser) {
-            console.log("2. No 'currentUser' found. Exiting function.");
-            return;
-        }
+        if (!currentUser) return;
         
-        console.log("2. Current user data:", currentUser);
         const equippedDressId = currentUser.equipped?.dress;
-        console.log("3. Equipped dress ID found:", equippedDressId);
 
         if (equippedDressId && equippedDressId !== 'default' && storeItems.dresses[equippedDressId]) {
             const newImage = storeItems.dresses[equippedDressId].game_file;
-            console.log("4. SUCCESS: A valid dress is equipped. Setting player image to:", newImage);
             elements.player.src = newImage;
         } else {
-            console.log("4. NOTE: No valid dress equipped. Setting player image to default 'character.png'.");
             elements.player.src = 'character.png'; 
         }
-        console.log("5. FINAL CHECK: Player image 'src' is now:", elements.player.src);
     }
     
     // Setup event listeners for store buttons
@@ -542,13 +532,20 @@
         }
     };
     
+    // ===========================================================================
+    // THIS IS THE MODIFIED BLOCK OF CODE
+    // ===========================================================================
     elements.storeBackBtn.onclick = () => {
         showPage(elements.gameContainer);
-        applyEquippedItems(); // Apply items when returning from store
-        if (currentUser && !isGameOver) {
-            resumeGame();
+        // When returning from the store, restart the game round.
+        // The startNewGameRound() function will handle applying the newly equipped character.
+        if (currentUser) {
+            startNewGameRound();
         }
     };
+    // ===========================================================================
+    // END OF MODIFIED BLOCK
+    // ===========================================================================
 
     elements.closeAdBtn.onclick = () => {
         elements.adPopupOverlay.style.display = 'none';
@@ -612,7 +609,7 @@
     
     function loginSuccess() {
         localStorage.setItem('savedMariomaUser', JSON.stringify({u: currentUser.username, p: currentUser.privateId}));
-        applyEquippedItems(); // Apply items on login
+        applyEquippedItems();
         elements.startScreen.style.display = "none";
         startNewGameRound();
     }
@@ -829,7 +826,7 @@
     // Initialize everything
     showPage(elements.gameContainer);
     loadSavedUser();
-    gameLoop(); // Start the single game loop once.
+    gameLoop();
 </script>
 
 <!-- Ad Refresh Script -->
