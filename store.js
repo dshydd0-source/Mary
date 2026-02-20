@@ -50,14 +50,11 @@ export function initializeStore(config) {
     userBalanceEl = config.elements.userBalance;
     storeItemListEl = config.elements.storeItemList;
 
-    // --- START: NEW DELEGATED EVENT LISTENER ---
-    // This single listener is attached to the parent list.
-    // It will handle clicks on any button inside it.
     if (storeItemListEl) {
         storeItemListEl.addEventListener('click', (event) => {
             const button = event.target.closest('button');
             if (!button || button.disabled) {
-                return; // Ignore clicks that aren't on an enabled button
+                return;
             }
 
             const itemId = button.dataset.itemId;
@@ -72,7 +69,6 @@ export function initializeStore(config) {
             }
         });
     }
-    // --- END: NEW DELEGATED EVENT LISTENER ---
 }
 
 export function renderStore() {
@@ -80,7 +76,7 @@ export function renderStore() {
     if (!currentUser) return;
 
     userBalanceEl.textContent = `رصيدك: ${currentUser.balance || 0} يمي`;
-    storeItemListEl.innerHTML = ''; // Clear the list before re-rendering
+    storeItemListEl.innerHTML = '';
 
     for (const categoryId in storeItems) {
         const category = storeItems[categoryId];
@@ -99,7 +95,6 @@ export function renderStore() {
             let buttonHtml;
             const dataAttrs = `data-item-id="${itemId}" data-category="${categoryId}"`;
 
-            // Logic for equippable items (e.g., dresses)
             if (item.game_file) {
                 const equipType = categoryId.slice(0, -1);
                 const isEquipped = currentUser.equipped?.[equipType] === itemId;
@@ -114,7 +109,6 @@ export function renderStore() {
                     buttonHtml = `<button class="buy-btn" ${dataAttrs} ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
                 }
             }
-            // Logic for non-equippable items
             else {
                  if (isOwned) {
                      const count = currentUser.inventory[itemId];
@@ -138,8 +132,6 @@ export function renderStore() {
             storeItemListEl.appendChild(li);
         }
     }
-    // --- REMOVED ---
-    // The old querySelectorAll loops for attaching listeners have been removed from here.
 }
 
 function findItem(itemId) {
@@ -203,7 +195,7 @@ async function equipItem(itemId, category) {
         updateUser(updatedUser);
 
         showWelcomeMessage("تم تجهيز العنصر بنجاح!");
-        applyEquippedItems(); // تطبيق التغيير فوراً
+        // applyEquippedItems(); // <-- THIS LINE IS REMOVED
         renderStore();
 
     } catch (error) {
@@ -229,7 +221,7 @@ async function unequipItem(itemId, category) {
         updateUser(updatedUser);
 
         showWelcomeMessage("تم إلغاء تجهيز العنصر.");
-        applyEquippedItems();
+        // applyEquippedItems(); // <-- THIS LINE IS REMOVED
         renderStore();
 
     } catch (error) {
