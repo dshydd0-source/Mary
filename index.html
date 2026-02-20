@@ -296,7 +296,7 @@
     let score = 0, time = 0, speed = 6, speedModifier = 1.0;
     let isGameOver = true, isPaused = false, frenzy = false;
     let move = { left: false, right: false };
-    let shapeInterval, timerInterval;
+    let shapeInterval, timerInterval, gameLoopId;
     let fallingShapes = [];
     let currentUser = null;
     
@@ -356,9 +356,10 @@
         }
     };
     
+    // --- THE FIX ---
     elements.storeBackBtn.onclick = () => {
         showPage(elements.gameContainer);
-        applyEquippedItems();
+        applyEquippedItems(); // Apply changes when returning to the game
         if (currentUser && !isGameOver) {
             resumeGame();
         }
@@ -476,11 +477,13 @@
         
         clearInterval(timerInterval); 
         clearInterval(shapeInterval);
+        cancelAnimationFrame(gameLoopId);
         
         elements.backgroundMusic.currentTime = 0;
         
         updateTimer();
         runGameIntervals();
+        gameLoopId = requestAnimationFrame(gameLoop);
     }
     
     elements.pauseBtn.onclick = () => { 
@@ -493,7 +496,7 @@
         const seconds = (time % 60).toString().padStart(2, '0');
         elements.timerEl.textContent = `الوقت: ${minutes}:${seconds}`;
         const minutesPassed = Math.floor((INITIAL_TIME - time) / 60);
-        speedModifier = 1.0 + (minutesPassed * 0.15); 
+        speedModifier = 1.0 + (minutesPassed * 0.2);
 
         if (!frenzy && time > 0 && time <= (INITIAL_TIME / 2)) {
             frenzy = true;
@@ -577,7 +580,6 @@
         }
     }
     
-    // --- THE FIX: Simplified Game Loop ---
     function gameLoop(){
         if(!isGameOver && !isPaused){
             if(move.left) movePlayer(-speed);
@@ -611,23 +613,7 @@
     }
 
     function movePlayer(dx){const x=elements.player.offsetLeft+dx;const max=elements.board.offsetWidth-elements.player.offsetWidth;elements.player.style.left=Math.max(0,Math.min(max,x))+"px"}
-    
-    function createShape(){
-        const s=document.createElement("div");
-        if(Math.random()<0.7){
-            s.className="shape circle";
-            const randomImage=collectibleImages[Math.floor(Math.random()*collectibleImages.length)];
-            s.style.backgroundImage=`url('${randomImage}')`
-        } else {
-            s.className="shape triangle"
-        }
-        s.style.left=Math.random()*(elements.board.offsetWidth-40)+"px";
-        elements.board.appendChild(s);
-        const baseFallSpeed = (Math.random() * 2 + 1.5); 
-        const finalFallSpeed = baseFallSpeed * speedModifier * (frenzy ? 1.6 : 1);
-        fallingShapes.push({element:s, y:-50, fallSpeed:finalFallSpeed});
-    }
-
+    function createShape(){const s=document.createElement("div");if(Math.random()<0.7){s.className="shape circle";const randomImage=collectibleImages[Math.floor(Math.random()*collectibleImages.length)];s.style.backgroundImage=`url('${randomImage}')`}else{s.className="shape triangle"}s.style.left=Math.random()*(elements.board.offsetWidth-40)+"px";elements.board.appendChild(s);const baseFallSpeed=(Math.random()*3+2);const finalFallSpeed=baseFallSpeed*speedModifier*(frenzy?1.6:1);fallingShapes.push({element:s,y:-50,fallSpeed:finalFallSpeed})}
     function collide(a,b){const A=a.getBoundingClientRect();const B=b.getBoundingClientRect();return!(A.right<B.left||A.left>B.right||A.bottom<B.top||A.top>B.bottom)}
     
     document.addEventListener("keydown",e=>{if(e.key==="ArrowLeft")move.left=true;if(e.key==="ArrowRight")move.right=true});
@@ -643,7 +629,7 @@
 
     showPage(elements.gameContainer);
     loadSavedUser();
-    gameLoop(); // Start the single game loop once.
+    gameLoop();
 </script>
 
 <!-- Ad Refresh Script -->
