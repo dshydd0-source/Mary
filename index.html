@@ -155,15 +155,20 @@
         #store-item-list h2:first-of-type {
             margin-top: 0;
         }
-        .buy-btn, .equip-btn { 
+
+        /* --- BLOCK TO UPDATE --- */
+        .buy-btn, .equip-btn, .unequip-btn { 
             border: none; border-radius: 8px; 
             padding: 10px 15px; font-size: 16px; 
             min-width: 100px;
+            cursor: pointer;
         }
         .buy-btn { background: #28a745; color: white; }
-        .buy-btn:disabled { background: #999; }
+        .buy-btn:disabled { background: #999; cursor: not-allowed; }
         .equip-btn { background: #007bff; color: white; }
-        .equip-btn.equipped { background: #6c757d; }
+        .equip-btn.equipped { background: #6c757d; cursor: default; }
+        .unequip-btn { background: #dc3545; color: white; } /* Red for unequip */
+        /* --- END BLOCK TO UPDATE --- */
 
     </style>
 </head>
