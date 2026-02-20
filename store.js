@@ -26,7 +26,12 @@ export const storeItems = {
         },
     },
     backgrounds: {
-        bg_forest: { name: 'خلفية الغابة', price: 500, file: 'bg_forest.jpg' }
+        bg_forest: { name: 'خلفية الغابة', price: 500, file: 'bg_forest.jpg' },
+        bg_bears: { name: 'خلفية دببة', price: 1000, file: 'bg_bears.jpg' },
+        bg_space: { name: 'خلفية الفضاء', price: 2500, file: 'bg_space.jpg' },
+        bg_temp1: { name: 'خلفية قابلة للتعديل ١', price: 1000, file: 'bg_temp1.jpg' },
+        bg_temp2: { name: 'خلفية قابلة للتعديل ٢', price: 1000, file: 'bg_temp2.jpg' },
+        bg_temp3: { name: 'خلفية قابلة للتعديل ٣', price: 1000, file: 'bg_temp3.jpg' }
     },
     powers: {
         power_shield: { name: 'درع حماية (x1)', price: 150, description: 'يحميك من مثلث لمرة واحدة.' }
@@ -35,6 +40,7 @@ export const storeItems = {
         secret_gift_1: { name: 'اكتشف الهدية!', price: 1000, description: 'تواصل مع المطور لاستلام هديتك.' }
     }
 };
+
 
 const categoryTitles = {
     dresses: "👗 فساتين جديدة",
