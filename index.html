@@ -302,11 +302,16 @@
     
     function applyEquippedItems() {
         if (!currentUser) return;
+        
+        console.log("Applying equipped items. Current equipped dress:", currentUser.equipped?.dress); // For debugging
+        
         const equippedDressId = currentUser.equipped?.dress;
         if (equippedDressId && storeItems.dresses[equippedDressId]) {
             elements.player.src = storeItems.dresses[equippedDressId].game_file;
+            console.log("Player source set to:", elements.player.src); // For debugging
         } else {
             elements.player.src = 'character.png'; 
+            console.log("Player source set to default: character.png"); // For debugging
         }
     }
 
@@ -356,7 +361,7 @@
         }
     };
     
-    // --- THE FIX ---
+    // --- FIX: Apply items when returning from store ---
     elements.storeBackBtn.onclick = () => {
         showPage(elements.gameContainer);
         applyEquippedItems(); // Apply changes when returning to the game
@@ -496,7 +501,8 @@
         const seconds = (time % 60).toString().padStart(2, '0');
         elements.timerEl.textContent = `الوقت: ${minutes}:${seconds}`;
         const minutesPassed = Math.floor((INITIAL_TIME - time) / 60);
-        speedModifier = 1.0 + (minutesPassed * 0.2);
+        // FIX: Slower speed increase
+        speedModifier = 1.0 + (minutesPassed * 0.15); 
 
         if (!frenzy && time > 0 && time <= (INITIAL_TIME / 2)) {
             frenzy = true;
@@ -613,7 +619,24 @@
     }
 
     function movePlayer(dx){const x=elements.player.offsetLeft+dx;const max=elements.board.offsetWidth-elements.player.offsetWidth;elements.player.style.left=Math.max(0,Math.min(max,x))+"px"}
-    function createShape(){const s=document.createElement("div");if(Math.random()<0.7){s.className="shape circle";const randomImage=collectibleImages[Math.floor(Math.random()*collectibleImages.length)];s.style.backgroundImage=`url('${randomImage}')`}else{s.className="shape triangle"}s.style.left=Math.random()*(elements.board.offsetWidth-40)+"px";elements.board.appendChild(s);const baseFallSpeed=(Math.random()*3+2);const finalFallSpeed=baseFallSpeed*speedModifier*(frenzy?1.6:1);fallingShapes.push({element:s,y:-50,fallSpeed:finalFallSpeed})}
+    
+    function createShape(){
+        const s=document.createElement("div");
+        if(Math.random()<0.7){
+            s.className="shape circle";
+            const randomImage=collectibleImages[Math.floor(Math.random()*collectibleImages.length)];
+            s.style.backgroundImage=`url('${randomImage}')`
+        } else {
+            s.className="shape triangle"
+        }
+        s.style.left=Math.random()*(elements.board.offsetWidth-40)+"px";
+        elements.board.appendChild(s);
+        // FIX: Slower base speed
+        const baseFallSpeed = (Math.random() * 2 + 1.5); 
+        const finalFallSpeed = baseFallSpeed * speedModifier * (frenzy ? 1.6 : 1);
+        fallingShapes.push({element:s, y:-50, fallSpeed:finalFallSpeed});
+    }
+
     function collide(a,b){const A=a.getBoundingClientRect();const B=b.getBoundingClientRect();return!(A.right<B.left||A.left>B.right||A.bottom<B.top||A.top>B.bottom)}
     
     document.addEventListener("keydown",e=>{if(e.key==="ArrowLeft")move.left=true;if(e.key==="ArrowRight")move.right=true});
