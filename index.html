@@ -453,6 +453,9 @@
             }
         } catch (error) {
             console.error("Auth Error: ", error);
+            elements.validationError.textContent = 'حدث خطأ، حاول مرة أخرى.';
+        } finally {
+            elements.startBtn.disabled = false;
             elements.startBtn.textContent = 'دخول / تسجيل';
         }
     };
@@ -677,27 +680,6 @@
     showPage(elements.gameContainer);
     loadSavedUser();
     gameLoop(); // Start the single game loop once.
-</script>
-
-<!-- Ad Refresh Script -->
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // Select only the ad iframes in the top container
-        const adIframes = document.querySelectorAll("#ad-container iframe[data-aa]");
-
-        if (adIframes.length > 0) {
-            // Store original sources to prevent appending multiple cache-busters
-            const originalSrcs = Array.from(adIframes).map(iframe => iframe.src);
-
-            setInterval(function() {
-                adIframes.forEach((iframe, index) => {
-                    // Re-construct the src with a new cache-busting parameter.
-                    // The original src likely contains a '?', so we can append with '&'.
-                    iframe.src = originalSrcs[index] + '&cb=' + Math.random();
-                });
-            }, 31000); // Refresh every 15 seconds as requested
-        }
-    });
 </script>
 
 </body>
