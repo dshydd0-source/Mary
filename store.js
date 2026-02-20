@@ -26,7 +26,6 @@ export const storeItems = {
         },
     },
     backgrounds: {
-        bg_forest: { name: 'خلفية الغابة', price: 500, file: 'bg_forest.jpg' },
         bg_bears: { name: 'خلفية دببة', price: 1000, file: 'bg_bears.jpg' },
         bg_space: { name: 'خلفية الفضاء', price: 2500, file: 'bg_space.jpg' },
         bg_temp1: { name: 'خلفية قابلة للتعديل ١', price: 1000, file: 'bg_temp1.jpg' },
