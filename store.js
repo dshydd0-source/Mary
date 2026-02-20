@@ -1,29 +1,14 @@
 // store.js
 
 let db, doc, updateDoc, increment;
-let getCurrentUser, updateUser, showWelcomeMessage, applyEquippedItems;
+let getCurrentUser, updateUser, showWelcomeMessage, applyEquippedItems, activatePower;
 let userBalanceEl, storeItemListEl;
 
 export const storeItems = {
     dresses: {
-        dress_sky: {
-            name: 'فستان سمائي',
-            price: 2000,
-            store_icon: 'dress_sky.png',
-            game_file: 'character_sky.png'
-        },
-        dress_white: {
-            name: 'فستان أبيض',
-            price: 3000,
-            store_icon: 'dress_white.png',
-            game_file: 'character_white.png'
-        },
-        dress_ramadan: {
-            name: 'فستان رمضان',
-            price: 5000,
-            store_icon: 'dress_ramadan.png',
-            game_file: 'character_ramadan.png'
-        },
+        dress_sky: { name: 'فستان سمائي', price: 2000, store_icon: 'dress_sky.png', game_file: 'character_sky.png' },
+        dress_white: { name: 'فستان أبيض', price: 3000, store_icon: 'dress_white.png', game_file: 'character_white.png' },
+        dress_ramadan: { name: 'فستان رمضان', price: 5000, store_icon: 'dress_ramadan.png', game_file: 'character_ramadan.png' },
     },
     backgrounds: {
         bg_bears: { name: 'خلفية دببة', price: 1000, file: 'bg_bears.jpg' },
@@ -33,6 +18,7 @@ export const storeItems = {
         bg_temp3: { name: 'خلفية مملكة العلكة', price: 1000, file: 'bg_temp3.jpg' }
     },
     powers: {
+        power_shield: { name: 'درع حماية (x1)', price: 150, description: 'يحميك من مثلث لمرة واحدة.' },
         power_double_points: { name: 'نقاط مضاعفة', price: 65, description: 'تجعل الدوائر تزيد النقاط *2 لمدة 30 ثانية.' },
         power_no_triangles: { name: 'حجب المثلثات', price: 60, description: 'يحجب نزول المثلثاث لمدة 30 ثانية.' },
         power_attract_circles: { name: 'جاذب الدوائر', price: 50, description: 'تجعل الدوائر تنجذب للاعب لمدة 30 ثانية.' }
@@ -50,7 +36,6 @@ const categoryTitles = {
     vouchers: "🎁 هدية سرية من مريم"
 };
 
-// Added a mapping from the plural category ID to the singular equipment type.
 const categoryToEquipType = {
     dresses: 'dress',
     backgrounds: 'background'
@@ -65,6 +50,7 @@ export function initializeStore(config) {
     updateUser = config.updateUser;
     showWelcomeMessage = config.showWelcomeMessage;
     applyEquippedItems = config.applyEquippedItems;
+    activatePower = config.activatePower; // Get the activatePower function from the game
     userBalanceEl = config.elements.userBalance;
     storeItemListEl = config.elements.storeItemList;
 
@@ -84,6 +70,8 @@ export function initializeStore(config) {
                 equipItem(itemId, category);
             } else if (button.classList.contains('unequip-btn')) {
                 unequipItem(itemId, category);
+            } else if (button.classList.contains('activate-btn')) { // NEW: Handle activate button click
+                activateAndConsumePower(itemId);
             }
         });
     }
@@ -107,16 +95,14 @@ export function renderStore() {
             const item = category[itemId];
             const li = document.createElement('li');
             li.className = 'store-item';
-
-            const isOwned = currentUser.inventory?.[itemId] > 0;
+            
             let buttonHtml;
             const dataAttrs = `data-item-id="${itemId}" data-category="${categoryId}"`;
 
-            // -- START OF MODIFICATION --
-            // Check if the item's category is equippable (dresses, backgrounds).
-            if (categoryToEquipType[categoryId]) {
+            if (categoryToEquipType[categoryId]) { // Logic for Dresses and Backgrounds (Equippable)
                 const equipType = categoryToEquipType[categoryId];
                 const isEquipped = currentUser.equipped?.[equipType] === itemId;
+                const isOwned = currentUser.inventory?.[itemId] > 0;
 
                 if (isOwned) {
                     if (isEquipped) {
@@ -127,16 +113,29 @@ export function renderStore() {
                 } else {
                     buttonHtml = `<button class="buy-btn" ${dataAttrs} ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
                 }
-            } else { // For non-equippable items like powers and vouchers.
-                 if (isOwned) {
-                     const count = currentUser.inventory[itemId];
-                     buttonHtml = `<button class="equip-btn equipped" disabled>تم الشراء (x${count})</button>`;
-                 } else {
-                    buttonHtml = `<button class="buy-btn" ${dataAttrs} ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
+            } else { // MODIFIED: Logic for Powers and Vouchers (Consumable)
+                 const count = currentUser.inventory?.[itemId] || 0;
+                 if (categoryId === 'powers') {
+                     if (count > 0) {
+                         // If player owns the power, show count and Activate button
+                         buttonHtml = `
+                            <div class="power-actions">
+                                <span class="item-count">(لديك: ${count})</span>
+                                <button class="activate-btn" ${dataAttrs}>تفعيل</button>
+                            </div>`;
+                     } else {
+                         // Otherwise, show the buy button
+                         buttonHtml = `<button class="buy-btn" ${dataAttrs} ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
+                     }
+                 } else { // For vouchers etc.
+                     if (count > 0) {
+                         buttonHtml = `<button class="equip-btn equipped" disabled>تم الشراء (x${count})</button>`;
+                     } else {
+                         buttonHtml = `<button class="buy-btn" ${dataAttrs} ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
+                     }
                  }
             }
 
-            // Use item.file as a fallback for the store icon.
             const iconSrc = item.store_icon || item.file;
 
             li.innerHTML = `
@@ -150,7 +149,6 @@ export function renderStore() {
                     <small>${item.description || ''}</small>
                 </div>
             `;
-            // -- END OF MODIFICATION --
             storeItemListEl.appendChild(li);
         }
     }
@@ -171,7 +169,7 @@ async function buyItem(itemId) {
 
     const result = findItem(itemId);
     if (!result) return;
-    const { item } = result;
+    const { item, categoryId } = result;
 
     if ((currentUser.balance || 0) < item.price) {
         showWelcomeMessage("رصيدك غير كافٍ!");
@@ -190,6 +188,8 @@ async function buyItem(itemId) {
         if (!updatedUser.inventory) updatedUser.inventory = {};
         updatedUser.inventory[itemId] = (updatedUser.inventory[itemId] || 0) + 1;
         updateUser(updatedUser);
+        
+        // REMOVED: The code that automatically activated the power on purchase is deleted from here.
 
         showWelcomeMessage(`تم شراء "${item.name}" بنجاح!`);
         renderStore();
@@ -199,6 +199,54 @@ async function buyItem(itemId) {
         showWelcomeMessage("حدث خطأ أثناء الشراء.");
     }
 }
+
+// NEW: Function to handle activating and consuming a power
+async function activateAndConsumePower(itemId) {
+    const currentUser = getCurrentUser();
+    if (!currentUser || (currentUser.inventory?.[itemId] || 0) <= 0) {
+        showWelcomeMessage("ليس لديك هذه القوة لاستخدامها!");
+        return;
+    }
+
+    // Check if player is in game? If not, the power will be ready for the next round.
+    // The main game logic handles this.
+
+    const userDocRef = doc(db, "users", currentUser.username);
+    try {
+        // Decrement the power count in Firestore
+        await updateDoc(userDocRef, {
+            [`inventory.${itemId}`]: increment(-1)
+        });
+
+        // Update local user object
+        const updatedUser = { ...currentUser };
+        updatedUser.inventory[itemId]--;
+        updateUser(updatedUser);
+
+        // Call the main game function to apply the power's effect
+        if (activatePower) {
+            activatePower(itemId);
+        } else {
+             console.error("activatePower function is not available.");
+             // Optional: Revert the transaction if activation fails critically
+             await updateDoc(userDocRef, { [`inventory.${itemId}`]: increment(1) });
+             updatedUser.inventory[itemId]++;
+             updateUser(updatedUser);
+             showWelcomeMessage("خطأ في تفعيل القوة.");
+             return;
+        }
+        
+        showWelcomeMessage(`تم تفعيل: ${storeItems.powers[itemId].name}`);
+        
+        // Re-render the store to show the updated count or hide the item if count is zero
+        renderStore();
+
+    } catch (error) {
+        console.error("Power Activation Error: ", error);
+        showWelcomeMessage("حدث خطأ أثناء تفعيل القوة.");
+    }
+}
+
 
 async function equipItem(itemId, category) {
     const currentUser = getCurrentUser();
