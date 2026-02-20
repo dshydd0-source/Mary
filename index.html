@@ -25,7 +25,7 @@
             background: #f0f0f0;
             padding: 5px 0;
             flex-shrink: 0;
-            display: flex;
+            display: flex; 
             align-items: center;
             justify-content: center;
             min-height: 70px;
@@ -76,7 +76,7 @@
         #game-over-overlay h2 { font-size: 32px; margin-bottom: 10px; }
 
         /* --- Ad Popup Styles --- */
-        #ad-popup-overlay {
+        #ad-popup-overlay { 
             position: fixed; inset: 0;
             background: rgba(0, 0, 0, 0.8);
             z-index: 2000; display: none; 
@@ -145,7 +145,7 @@
         .store-item small { font-size: 14px; color: #555; margin-top: 4px; }
         #store-item-list h2 {
             font-size: 22px;
-            text-align: right;
+            text-align: right; 
             color: #333;
             border-bottom: 2px solid #ddd;
             padding-bottom: 5px;
@@ -156,7 +156,6 @@
             margin-top: 0;
         }
 
-        /* --- BLOCK TO UPDATE --- */
         .buy-btn, .equip-btn, .unequip-btn { 
             border: none; border-radius: 8px; 
             padding: 10px 15px; font-size: 16px; 
@@ -167,8 +166,7 @@
         .buy-btn:disabled { background: #999; cursor: not-allowed; }
         .equip-btn { background: #007bff; color: white; }
         .equip-btn.equipped { background: #6c757d; cursor: default; }
-        .unequip-btn { background: #dc3545; color: white; } /* Red for unequip */
-        /* --- END BLOCK TO UPDATE --- */
+        .unequip-btn { background: #dc3545; color: white; }
 
     </style>
 </head>
@@ -264,10 +262,162 @@
 <audio id="background-music" src="background.mp3" loop></audio>
 
 <script type="module">
+    // =========================================================================================
+    // START: ALL CODE IS NOW INSIDE THIS SCRIPT TAG
+    // =========================================================================================
+
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
     import { getFirestore, collection, doc, getDoc, setDoc, query, orderBy, limit, getDocs, serverTimestamp, updateDoc, increment } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
     
-    import { initializeStore, renderStore, storeItems } from './store.js';
+    // =========================================================================================
+    // START: CODE FROM FORMER store.js
+    // =========================================================================================
+    
+    const storeItems = {
+        dresses: {
+            dress_sky: { name: 'فستان سمائي', price: 2000, store_icon: 'dress_sky.png', game_file: 'character_sky.png' },
+            dress_white: { name: 'فستان أبيض', price: 3000, store_icon: 'dress_white.png', game_file: 'character_white.png' },
+            dress_pink: { name: 'فستان وردي', price: 250, game_file: 'character_pink.png' },
+        },
+        backgrounds: { bg_forest: { name: 'خلفية الغابة', price: 500, file: 'bg_forest.jpg' } },
+        powers: { power_shield: { name: 'درع حماية (x1)', price: 150, description: 'يحميك من مثلث لمرة واحدة.' } },
+        vouchers: { secret_gift_1: { name: 'اكتشف الهدية!', price: 1000, description: 'تواصل مع المطور لاستلام هديتك.' } }
+    };
+
+    const categoryTitles = {
+        dresses: "👗 فساتين جديدة",
+        backgrounds: "🖼️ خلفيات لعب",
+        powers: "⚡️ قوى مساعدة (Powers)",
+        vouchers: "🎁 هدية سرية من مريم"
+    };
+
+    function renderStore() {
+        if (!currentUser) return;
+
+        elements.userBalance.textContent = `رصيدك: ${currentUser.balance || 0} يمي`;
+        elements.storeItemList.innerHTML = '';
+
+        for (const categoryId in storeItems) {
+            const category = storeItems[categoryId];
+            const categoryTitle = document.createElement('h2');
+            categoryTitle.textContent = categoryTitles[categoryId] || categoryId;
+            elements.storeItemList.appendChild(categoryTitle);
+
+            for (const itemId in category) {
+                const item = category[itemId];
+                const li = document.createElement('li');
+                li.className = 'store-item';
+                const isOwned = currentUser.inventory?.[itemId] > 0;
+                let buttonHtml;
+                const dataAttrs = `data-item-id="${itemId}" data-category="${categoryId}"`;
+
+                if (item.game_file) {
+                    const equipType = categoryId.slice(0, -1);
+                    const isEquipped = currentUser.equipped?.[equipType] === itemId;
+                    if (isOwned) {
+                        if (isEquipped) {
+                            buttonHtml = `<button class="unequip-btn" ${dataAttrs}>إلغاء التجهيز</button>`;
+                        } else {
+                            buttonHtml = `<button class="equip-btn" ${dataAttrs}>تجهيز</button>`;
+                        }
+                    } else {
+                        buttonHtml = `<button class="buy-btn" ${dataAttrs} ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
+                    }
+                } else {
+                    if (isOwned) {
+                        const count = currentUser.inventory[itemId];
+                        buttonHtml = `<button class="equip-btn equipped" disabled>تم الشراء (x${count})</button>`;
+                    } else {
+                        buttonHtml = `<button class="buy-btn" ${dataAttrs} ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
+                    }
+                }
+                li.innerHTML = `
+                    ${item.store_icon ? `<img src="${item.store_icon}" class="store-item-icon">` : ''}
+                    <div class="store-item-main">
+                        <div class="store-item-details">
+                            <span class="item-name">${item.name}</span>
+                            <span class="item-price">${item.price} يمي</span>
+                            ${buttonHtml}
+                        </div>
+                        <small>${item.description || ''}</small>
+                    </div>`;
+                elements.storeItemList.appendChild(li);
+            }
+        }
+    }
+
+    function findItem(itemId) {
+        for (const categoryId in storeItems) {
+            if (storeItems[categoryId][itemId]) {
+                return { item: storeItems[categoryId][itemId], categoryId: categoryId };
+            }
+        }
+        return null;
+    }
+
+    async function buyItem(itemId) {
+        if (!currentUser) return;
+        const result = findItem(itemId);
+        if (!result) return;
+        const { item } = result;
+        if ((currentUser.balance || 0) < item.price) {
+            showWelcomeMessage("رصيدك غير كافٍ!");
+            return;
+        }
+        const userDocRef = doc(db, "users", currentUser.username);
+        try {
+            await updateDoc(userDocRef, {
+                balance: increment(-item.price),
+                [`inventory.${itemId}`]: increment(1)
+            });
+            currentUser.balance -= item.price;
+            if (!currentUser.inventory) currentUser.inventory = {};
+            currentUser.inventory[itemId] = (currentUser.inventory[itemId] || 0) + 1;
+            showWelcomeMessage(`تم شراء "${item.name}" بنجاح!`);
+            renderStore();
+        } catch (error) {
+            console.error("Purchase Error: ", error);
+            showWelcomeMessage("حدث خطأ أثناء الشراء.");
+        }
+    }
+
+    async function equipItem(itemId, category) {
+        if (!currentUser) return;
+        const userDocRef = doc(db, "users", currentUser.username);
+        try {
+            const keyToUpdate = `equipped.${category.slice(0, -1)}`;
+            await updateDoc(userDocRef, { [keyToUpdate]: itemId });
+            if (!currentUser.equipped) currentUser.equipped = {};
+            currentUser.equipped[category.slice(0, -1)] = itemId;
+            showWelcomeMessage("تم تجهيز العنصر بنجاح!");
+            applyEquippedItems();
+            renderStore();
+        } catch (error) {
+            console.error("Equip Error:", error);
+            showWelcomeMessage("خطأ في تجهيز العنصر.");
+        }
+    }
+
+    async function unequipItem(itemId, category) {
+        if (!currentUser) return;
+        const userDocRef = doc(db, "users", currentUser.username);
+        try {
+            const keyToUpdate = `equipped.${category.slice(0, -1)}`;
+            await updateDoc(userDocRef, { [keyToUpdate]: 'default' });
+            if (!currentUser.equipped) currentUser.equipped = {};
+            currentUser.equipped[category.slice(0, -1)] = 'default';
+            showWelcomeMessage("تم إلغاء تجهيز العنصر.");
+            applyEquippedItems();
+            renderStore();
+        } catch (error) {
+            console.error("Unequip Error:", error);
+            showWelcomeMessage("خطأ في إلغاء تجهيز العنصر.");
+        }
+    }
+
+    // =========================================================================================
+    // END: CODE FROM FORMER store.js
+    // =========================================================================================
 
     const firebaseConfig = {
       apiKey: "AIzaSyDsJ6fm4SFNLnRuHj-b80L0BweGVNkoiIM",
@@ -315,7 +465,7 @@
     };
     
     // --- Game State & Config ---
-    const INITIAL_TIME = 600;
+    const INITIAL_TIME = 600; 
     const collectibleImages = ['item1.png', 'item2.png', 'item3.png', 'item4.png'];
 
     let score = 0, time = 0, speed = 6, speedModifier = 1.0;
@@ -323,31 +473,40 @@
     let move = { left: false, right: false };
     let shapeInterval, timerInterval;
     let fallingShapes = [];
-    let currentUser = null;
+    let currentUser = null; // This is the single source of truth now
     
-        function applyEquippedItems(user) {
-        const effectiveUser = user || currentUser; // استخدم المستخدم الذي تم تمريره، أو ارجع إلى المستخدم العام
-        if (!effectiveUser) return;
+    // --- THIS IS THE MOST IMPORTANT FUNCTION TO CHECK ---
+    function applyEquippedItems() {
+        console.log("1. 'applyEquippedItems' has been called.");
+        if (!currentUser) {
+            console.log("2. No 'currentUser' found. Exiting function.");
+            return;
+        }
         
-        const equippedDressId = effectiveUser.equipped?.dress;
+        console.log("2. Current user data:", currentUser);
+        const equippedDressId = currentUser.equipped?.dress;
+        console.log("3. Equipped dress ID found:", equippedDressId);
+
         if (equippedDressId && equippedDressId !== 'default' && storeItems.dresses[equippedDressId]) {
-            elements.player.src = storeItems.dresses[equippedDressId].game_file;
+            const newImage = storeItems.dresses[equippedDressId].game_file;
+            console.log("4. SUCCESS: A valid dress is equipped. Setting player image to:", newImage);
+            elements.player.src = newImage;
         } else {
+            console.log("4. NOTE: No valid dress equipped. Setting player image to default 'character.png'.");
             elements.player.src = 'character.png'; 
         }
+        console.log("5. FINAL CHECK: Player image 'src' is now:", elements.player.src);
     }
-
-    // --- Initialize Store Module ---
-    initializeStore({
-        db, doc, updateDoc, increment,
-        getCurrentUser: () => currentUser,
-        updateUser: (updatedUser) => { currentUser = updatedUser; },
-        showWelcomeMessage: showWelcomeMessage,
-        applyEquippedItems: applyEquippedItems,
-        elements: {
-            userBalance: elements.userBalance,
-            storeItemList: elements.storeItemList
-        }
+    
+    // Setup event listeners for store buttons
+    elements.storeItemList.addEventListener('click', (event) => {
+        const button = event.target.closest('button');
+        if (!button || button.disabled) return;
+        const itemId = button.dataset.itemId;
+        const category = button.dataset.category;
+        if (button.classList.contains('buy-btn')) buyItem(itemId);
+        else if (button.classList.contains('equip-btn')) equipItem(itemId, category);
+        else if (button.classList.contains('unequip-btn')) unequipItem(itemId, category);
     });
 
     // --- Page Navigation ---
@@ -385,7 +544,7 @@
     
     elements.storeBackBtn.onclick = () => {
         showPage(elements.gameContainer);
-        applyEquippedItems();
+        applyEquippedItems(); // Apply items when returning from store
         if (currentUser && !isGameOver) {
             resumeGame();
         }
@@ -453,7 +612,7 @@
     
     function loginSuccess() {
         localStorage.setItem('savedMariomaUser', JSON.stringify({u: currentUser.username, p: currentUser.privateId}));
-        applyEquippedItems();
+        applyEquippedItems(); // Apply items on login
         elements.startScreen.style.display = "none";
         startNewGameRound();
     }
@@ -490,7 +649,7 @@
         isPaused = false;
         frenzy = false;
         
-        applyEquippedItems();
+        applyEquippedItems(); // Apply items at the start of a new round
 
         fallingShapes.forEach(s => s.element.remove());
         fallingShapes = [];
@@ -575,7 +734,7 @@
         try {
             await updateDoc(userDocRef, updates);
             currentUser.balance = (currentUser.balance || 0) + score;
-        } catch(e) {
+        } catch(e) { 
             console.error("Error saving score:", e);
         }
     }
@@ -604,7 +763,6 @@
         }
     }
     
-    // --- THE FIX: Simplified Game Loop ---
     function gameLoop(){
         if(!isGameOver && !isPaused){
             if(move.left) movePlayer(-speed);
@@ -668,6 +826,7 @@
     function showWelcomeMessage(message){const div=document.createElement('div');div.textContent=message;Object.assign(div.style,{position:'fixed',top:'20px',left:'50%',transform:'translateX(-50%)',padding:'10px 25px',background:'rgba(40,167,69,0.9)',color:'white',borderRadius:'10px',zIndex:'1000',fontSize:'18px',fontWeight:'bold',boxShadow:'0 4px 10px rgba(0,0,0,0.2)'});document.body.appendChild(div);setTimeout(()=>{div.style.transition='opacity 0.5s';div.style.opacity='0';setTimeout(()=>div.remove(),500)},3500)}
     function loadSavedUser(){const savedUserStr=localStorage.getItem('savedMariomaUser');if(savedUserStr){try{const savedUser=JSON.parse(savedUserStr);elements.instaUser.value=savedUser.u;elements.privateIdInput.value=savedUser.p;validateInputs()}catch(e){localStorage.removeItem('savedMariomaUser')}}}
 
+    // Initialize everything
     showPage(elements.gameContainer);
     loadSavedUser();
     gameLoop(); // Start the single game loop once.
@@ -676,20 +835,14 @@
 <!-- Ad Refresh Script -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        // Select only the ad iframes in the top container
         const adIframes = document.querySelectorAll("#ad-container iframe[data-aa]");
-
         if (adIframes.length > 0) {
-            // Store original sources to prevent appending multiple cache-busters
             const originalSrcs = Array.from(adIframes).map(iframe => iframe.src);
-
             setInterval(function() {
                 adIframes.forEach((iframe, index) => {
-                    // Re-construct the src with a new cache-busting parameter.
-                    // The original src likely contains a '?', so we can append with '&'.
                     iframe.src = originalSrcs[index] + '&cb=' + Math.random();
                 });
-            }, 40000); // Refresh every 15 seconds as requested
+            }, 40000);
         }
     });
 </script>
