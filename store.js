@@ -28,7 +28,7 @@ export const storeItems = {
     backgrounds: {
         bg_bears: { name: 'خلفية دببة', price: 1000, file: 'bg_bears.jpg' },
         bg_space: { name: 'خلفية الفضاء', price: 2500, file: 'bg_space.jpg' },
-        bg_temp1: { name: 'خلفية قابلة للتعديل ١', price: 1000, file: 'bg_temp1.jpg' },
+        bg_temp1: { name: 'خلفية كارومي', price: 1000, file: 'bg_temp1.jpg' },
         bg_temp2: { name: 'خلفية قابلة للتعديل ٢', price: 1000, file: 'bg_temp2.jpg' },
         bg_temp3: { name: 'خلفية قابلة للتعديل ٣', price: 1000, file: 'bg_temp3.jpg' }
     },
