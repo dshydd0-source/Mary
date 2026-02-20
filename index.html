@@ -327,13 +327,28 @@
     
     function applyEquippedItems() {
         if (!currentUser) return;
+
+        // تطبيق الفستان المجهز
         const equippedDressId = currentUser.equipped?.dress;
-        if (equippedDressId && storeItems.dresses[equippedDressId]) {
+        if (equippedDressId && equippedDressId !== 'default' && storeItems.dresses[equippedDressId]) {
             elements.player.src = storeItems.dresses[equippedDressId].game_file;
         } else {
             elements.player.src = 'character.png'; 
         }
+
+        // تطبيق الخلفية المجهزة
+        const equippedBackgroundId = currentUser.equipped?.background;
+        if (equippedBackgroundId && equippedBackgroundId !== 'default' && storeItems.backgrounds[equippedBackgroundId]) {
+            const backgroundFile = storeItems.backgrounds[equippedBackgroundId].file;
+            elements.board.style.background = `url('${backgroundFile}')`;
+            elements.board.style.backgroundSize = 'cover';
+            elements.board.style.backgroundPosition = 'center';
+        } else {
+            // العودة إلى اللون الافتراضي عند إلغاء التجهيز
+            elements.board.style.background = 'lightpink';
+        }
     }
+
 
     // --- Initialize Store Module ---
     initializeStore({
