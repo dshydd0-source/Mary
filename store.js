@@ -18,7 +18,12 @@ export const storeItems = {
             store_icon: 'dress_white.png',
             game_file: 'character_white.png'
         },
-        dress_pink: { name: 'فستان وردي', price: 250, game_file: 'character_pink.png' },
+        dress_ramadan: {
+            name: 'فستان رمضان',
+            price: 5000,
+            store_icon: 'dress_ramadan.png',
+            game_file: 'character_ramadan.png'
+        },
     },
     backgrounds: {
         bg_forest: { name: 'خلفية الغابة', price: 500, file: 'bg_forest.jpg' }
