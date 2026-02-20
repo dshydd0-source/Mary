@@ -325,10 +325,12 @@
     let fallingShapes = [];
     let currentUser = null;
     
-    function applyEquippedItems() {
-        if (!currentUser) return;
-        const equippedDressId = currentUser.equipped?.dress;
-        if (equippedDressId && storeItems.dresses[equippedDressId]) {
+        function applyEquippedItems(user) {
+        const effectiveUser = user || currentUser; // استخدم المستخدم الذي تم تمريره، أو ارجع إلى المستخدم العام
+        if (!effectiveUser) return;
+        
+        const equippedDressId = effectiveUser.equipped?.dress;
+        if (equippedDressId && equippedDressId !== 'default' && storeItems.dresses[equippedDressId]) {
             elements.player.src = storeItems.dresses[equippedDressId].game_file;
         } else {
             elements.player.src = 'character.png'; 
