@@ -1,14 +1,29 @@
 // store.js
 
 let db, doc, updateDoc, increment;
-let getCurrentUser, updateUser, showWelcomeMessage, applyEquippedItems, activatePower;
+let getCurrentUser, updateUser, showWelcomeMessage, applyEquippedItems;
 let userBalanceEl, storeItemListEl;
 
 export const storeItems = {
     dresses: {
-        dress_sky: { name: 'فستان سمائي', price: 2000, store_icon: 'dress_sky.png', game_file: 'character_sky.png' },
-        dress_white: { name: 'فستان أبيض', price: 3000, store_icon: 'dress_white.png', game_file: 'character_white.png' },
-        dress_ramadan: { name: 'فستان رمضان', price: 5000, store_icon: 'dress_ramadan.png', game_file: 'character_ramadan.png' },
+        dress_sky: {
+            name: 'فستان سمائي',
+            price: 2000,
+            store_icon: 'dress_sky.png',
+            game_file: 'character_sky.png'
+        },
+        dress_white: {
+            name: 'فستان أبيض',
+            price: 3000,
+            store_icon: 'dress_white.png',
+            game_file: 'character_white.png'
+        },
+        dress_ramadan: {
+            name: 'فستان رمضان',
+            price: 5000,
+            store_icon: 'dress_ramadan.png',
+            game_file: 'character_ramadan.png'
+        },
     },
     backgrounds: {
         bg_bears: { name: 'خلفية دببة', price: 1000, file: 'bg_bears.jpg' },
@@ -18,7 +33,6 @@ export const storeItems = {
         bg_temp3: { name: 'خلفية مملكة العلكة', price: 1000, file: 'bg_temp3.jpg' }
     },
     powers: {
-        power_shield: { name: 'درع حماية (x1)', price: 150, description: 'يحميك من مثلث لمرة واحدة.' },
         power_double_points: { name: 'نقاط مضاعفة', price: 65, description: 'تجعل الدوائر تزيد النقاط *2 لمدة 30 ثانية.' },
         power_no_triangles: { name: 'حجب المثلثات', price: 60, description: 'يحجب نزول المثلثاث لمدة 30 ثانية.' },
         power_attract_circles: { name: 'جاذب الدوائر', price: 50, description: 'تجعل الدوائر تنجذب للاعب لمدة 30 ثانية.' }
@@ -36,6 +50,7 @@ const categoryTitles = {
     vouchers: "🎁 هدية سرية من مريم"
 };
 
+// Added a mapping from the plural category ID to the singular equipment type.
 const categoryToEquipType = {
     dresses: 'dress',
     backgrounds: 'background'
@@ -50,7 +65,6 @@ export function initializeStore(config) {
     updateUser = config.updateUser;
     showWelcomeMessage = config.showWelcomeMessage;
     applyEquippedItems = config.applyEquippedItems;
-    activatePower = config.activatePower; // Get the activatePower function from the game
     userBalanceEl = config.elements.userBalance;
     storeItemListEl = config.elements.storeItemList;
 
@@ -98,6 +112,8 @@ export function renderStore() {
             let buttonHtml;
             const dataAttrs = `data-item-id="${itemId}" data-category="${categoryId}"`;
 
+            // -- START OF MODIFICATION --
+            // Check if the item's category is equippable (dresses, backgrounds).
             if (categoryToEquipType[categoryId]) {
                 const equipType = categoryToEquipType[categoryId];
                 const isEquipped = currentUser.equipped?.[equipType] === itemId;
@@ -111,15 +127,16 @@ export function renderStore() {
                 } else {
                     buttonHtml = `<button class="buy-btn" ${dataAttrs} ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
                 }
-            } else { 
-                 if (isOwned && categoryId !== 'powers') { // For vouchers etc. show count
+            } else { // For non-equippable items like powers and vouchers.
+                 if (isOwned) {
                      const count = currentUser.inventory[itemId];
                      buttonHtml = `<button class="equip-btn equipped" disabled>تم الشراء (x${count})</button>`;
-                 } else { // For powers, always show buy button
+                 } else {
                     buttonHtml = `<button class="buy-btn" ${dataAttrs} ${ (currentUser.balance || 0) < item.price ? 'disabled' : '' }>شراء</button>`;
                  }
             }
 
+            // Use item.file as a fallback for the store icon.
             const iconSrc = item.store_icon || item.file;
 
             li.innerHTML = `
@@ -133,6 +150,7 @@ export function renderStore() {
                     <small>${item.description || ''}</small>
                 </div>
             `;
+            // -- END OF MODIFICATION --
             storeItemListEl.appendChild(li);
         }
     }
@@ -153,7 +171,7 @@ async function buyItem(itemId) {
 
     const result = findItem(itemId);
     if (!result) return;
-    const { item, categoryId } = result;
+    const { item } = result;
 
     if ((currentUser.balance || 0) < item.price) {
         showWelcomeMessage("رصيدك غير كافٍ!");
@@ -172,12 +190,6 @@ async function buyItem(itemId) {
         if (!updatedUser.inventory) updatedUser.inventory = {};
         updatedUser.inventory[itemId] = (updatedUser.inventory[itemId] || 0) + 1;
         updateUser(updatedUser);
-        
-        // --- START OF NEW CODE: Activate power on purchase ---
-        if (categoryId === 'powers' && activatePower) {
-            activatePower(itemId);
-        }
-        // --- END OF NEW CODE ---
 
         showWelcomeMessage(`تم شراء "${item.name}" بنجاح!`);
         renderStore();
